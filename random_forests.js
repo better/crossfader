@@ -24,6 +24,23 @@ function sampleRow(data) {
   return result;
 }
 
+function median(data) {
+  // Sample non-null elements from data
+  var result = [];
+  for (var j = 0; j < data[0].length; j++) {
+    var elms = []
+    for (var i = 0; i < data.length; i++)
+      if (data[i][j] !== null)
+	elms.push(data[i][j]);
+
+    if (elms.length % 2)
+      result.push(elms[Math.floor(elms.length/2)]);
+    else
+      result.push(elms[Math.floor((elms.length + Math.random())/2)]);
+  }
+  return result;
+}
+
 function copyNonNull(src, dst) {
   for (var j = 0; j < dst.length; j++)
     if (dst[j] === null)
@@ -31,11 +48,14 @@ function copyNonNull(src, dst) {
   return dst;
 }
 
-function fitTree(data) {
+function fitTree(data, useMedian) {
   // Returns a classifier
 
   // Compute an representative feature vector
-  var representativeRow = sampleRow(data);
+  if (useMedian)
+    var representativeRow = median(data);
+  else
+    var representativeRow = sampleRow(data);
 
   // Handle leaf nodes (too few data points)
   if (data.length <= minLeaf) {
@@ -96,7 +116,7 @@ function fitTree(data) {
     return function(row) { return copyNonNull(representativeRow, row.slice(0)); }
   }
 
-  var funcs = dataSplit.map(fitTree);
+  var funcs = dataSplit.map(fitTree, useMedian);
 
   return function(row) {
     var result = funcs[bestFunc(row)](row);
@@ -104,12 +124,11 @@ function fitTree(data) {
   }
 }
 
-function fit(data, nEstimators) {
+function fit(data, nEstimators, useMedian) {
   estimators = [];
   for (var i = 0; i < nEstimators; i++) {
-    console.log('fitting estimator ' + i);
     var bootstrappedData = bootstrap(data);
-    estimators.push(fitTree(bootstrappedData));
+    estimators.push(fitTree(bootstrappedData, useMedian));
   }
 
   function sample(row, nSamples) {
