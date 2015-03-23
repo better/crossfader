@@ -8,11 +8,13 @@ function readExample(callback) {
     for (m in rawData[k])
       headers[m] = true;
 
+  headers = Object.keys(headers);
+  
   var data = Object.keys(rawData).map(function(k) {
-	  return Object.keys(headers).map(function(m) { return rawData[k][m]; });
+	  return headers.map(function(m) { return rawData[k][m]; });
       });
 
-  return data;
+  return {'headers': headers, 'data': data};
 }
 
 function crossValidate(data, nEstimators, useMedian) {
@@ -34,9 +36,21 @@ function crossValidate(data, nEstimators, useMedian) {
       distribution.push(j);
   }
 
+  // Fit model to dump
+  var model = new RandomForest();
+  model.train(data, nEstimators, useMedian, 100, 10);
+  var serialized = JSON.stringify(model.serialize(), function(key, val) {
+    if (val && val.toPrecision)  // reduce file size by stripping digits
+      return val.toPrecision(3);
+    else
+      return val;
+  });
+  serialized = 'var data = ' + serialized + ';';
+  fs.writeFile('model-' + nEstimators + '-' + useMedian + '.js', serialized);
 
+  // Do cross validation
   for (var kFold = 0; kFold < 10; kFold++) {
-    // Do cross validation
+
     var trainData = [];
     var testData = [];
 
@@ -101,11 +115,14 @@ function crossValidate(data, nEstimators, useMedian) {
   console.log();
 }
 
-var data = readExample();
+var stuff = readExample();
+fs.writeFile('headers.js', 'var headers = ' + JSON.stringify(stuff['headers']) + ';');
+/*
 var nEstimators = [1, 10, 100, 1000];
 for (var useMedian = 0; useMedian < 2; useMedian++) {
   for (var i = 0; i < nEstimators.length; i++) {
-    crossValidate(data, nEstimators[i], useMedian == 1);
+    crossValidate(stuff['data'], nEstimators[i], useMedian == 1);
   }
 }
 
+*/
