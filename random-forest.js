@@ -44,11 +44,11 @@ function copyDefined(src, dst) {
   return dst;
 }
 
-function SplitPoint(fx, bx, pMissing) {
+function SplitPoint(fx, bx, pMissing, pTies) {
   this._fx = fx;
   this._bx = bx;
-  this._pTies = Math.random();
   this._pMissing = pMissing;
+  this._pTies = pTies ? pTies : Math.random();
 }
 
 SplitPoint.prototype.getSide = function(row) {
@@ -73,7 +73,7 @@ Leaf.prototype.fill = function(row) {
 }
 
 Leaf.prototype.serialize = function() {
-  return {'type': 'leaf', 'row': this._representativeRow};
+  return {'t': 'l', 'row': this._representativeRow};
 }
 
 function NonLeaf(split, lChild, rChild) {
@@ -87,11 +87,11 @@ NonLeaf.prototype.fill = function(row) {
 }
 
 NonLeaf.prototype.serialize = function() {
-  return {'type': 'nonleaf', 'split': this._split.serialize(), 'L': this._lChild.serialize(), 'R': this._rChild.serialize()};
+  return {'t': 'nl', 'split': this._split.serialize(), 'L': this._lChild.serialize(), 'R': this._rChild.serialize()};
 }
 
-function RandomForest() {
-  this._estimators = [];
+function RandomForest(estimators) {
+  this._estimators = estimators ? estimators : [];
 }
 
 RandomForest.prototype.fitTree = function(data, useMedian) {
@@ -169,15 +169,22 @@ RandomForest.prototype.train = function(data, nEstimators, useMedian, maxFeature
 }
 
 RandomForest.prototype.fill = function(row) {
-  return this._estimators[Math.floor(Math.random() * this._nEstimators)].fill(row);
+  return this._estimators[Math.floor(Math.random() * this._estimators.length)].fill(row);
 }
 
 RandomForest.prototype.serialize = function() {
-  return {'estimators': this._estimators.map(function(e) { return e.serialize(); })};
+  return {'t': 'f', 'estimators': this._estimators.map(function(e) { return e.serialize(); })};
 }
 
 RandomForest.deserialize = function(data) {
-    
+  if (data['t'] == 'f')
+    return new RandomForest(data['estimators'].map(RandomForest.deserialize));
+  else if (data['t'] == 'l')
+    return new Leaf(data['row']);
+  else if (data['t'] == 'nl')
+    return new NonLeaf(new SplitPoint(data['split']['fx'], data['split']['bx'], data['split']['pm'], data['split']['pt']),
+		       RandomForest.deserialize(data['L']),
+		       RandomForest.deserialize(data['R']))
 }
 
 module.exports = RandomForest;
