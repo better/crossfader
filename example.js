@@ -50,11 +50,12 @@ function crossValidate(data, nEstimators, useMedian) {
     // Fit model
     var model = new RandomForest(nEstimators, useMedian);
     model.train(trainData);
+    console.log(JSON.stringify(model.serialize()));
 
     // Predict missing values from the test set
     for (var i = 0; i < testData.length; i++) {
       for (var j = 0; j < testData[i].length; j++) {
-	if (testData[i][j] == null)
+	if (testData[i][j] == undefined)
 	  continue;
 
 	if (useMedian)
@@ -63,10 +64,10 @@ function crossValidate(data, nEstimators, useMedian) {
 	var samples = [];
 	for (var sample = 0; sample < nSamples; sample++) {
 	  var row = testData[i].slice(0);
-	  row[j] = null;
+	  row[j] = undefined;
 	  samples.push(model.fill(row)[j]);
 	}
-	samples.sort(function(a, b) { return a-b;} );
+	samples.sort(function(a, b) { return a-b; });
 
 	if (useMedian) {
 	  sumDiff[j] += Math.abs(testData[i][j] - samples[Math.floor(samples.length/2)]);
@@ -89,7 +90,7 @@ function crossValidate(data, nEstimators, useMedian) {
     }
   }
 
-  console.log(nEstimators + ' ' + useMedian);
+  console.log(nEstimators + ' ' + (useMedian ? 'median' : 'distribution'));
   if (useMedian) {
     for (var j = 0; j < sumDiff.length; j++) {
       console.log(j + ': ' + (sumDiff[j] / nObs[j]).toFixed(2));
@@ -105,7 +106,6 @@ var data = readExample();
 var nEstimators = [1, 10, 100, 1000];
 for (var useMedian = 0; useMedian < 2; useMedian++) {
   for (var i = 0; i < nEstimators.length; i++) {
-    console.log(nEstimators[i] + ' ' + useMedian ? 'median' : 'distribution');
     crossValidate(data, nEstimators[i], useMedian == 1);
   }
 }

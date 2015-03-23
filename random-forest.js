@@ -60,12 +60,20 @@ SplitPoint.prototype.getSide = function(row) {
     return (row[this._fx] < this._bx) ? 1 : 0;
 }
 
+SplitPoint.prototype.serialize = function() {
+  return {'bx': this._bx, 'fx': this._fx, 'pm': this._pMissing, 'pt': this._pTies};
+}
+
 function Leaf(representativeRow) {
   this._representativeRow = representativeRow;
 }
 
 Leaf.prototype.fill = function(row) {
-   return copyDefined(this._representativeRow, row.slice(0));
+ return copyDefined(this._representativeRow, row.slice(0));
+}
+
+Leaf.prototype.serialize = function() {
+  return {'type': 'leaf', 'row': this._representativeRow};
 }
 
 function NonLeaf(split, lChild, rChild) {
@@ -76,6 +84,10 @@ function NonLeaf(split, lChild, rChild) {
 
 NonLeaf.prototype.fill = function(row) {
   return [this._lChild, this._rChild][this._split.getSide(row)].fill(row);
+}
+
+NonLeaf.prototype.serialize = function() {
+  return {'type': 'nonleaf', 'split': this._split.serialize(), 'L': this._lChild.serialize(), 'R': this._rChild.serialize()};
 }
 
 function RandomForest(nEstimators, useMedian) {
@@ -157,6 +169,10 @@ RandomForest.prototype.train = function(data) {
 
 RandomForest.prototype.fill = function(row) {
   return this._estimators[Math.floor(Math.random() * this._nEstimators)].fill(row);
+}
+
+RandomForest.prototype.serialize = function() {
+  return {'estimators': this._estimators.map(function(e) { return e.serialize(); })};
 }
 
 module.exports = RandomForest;
