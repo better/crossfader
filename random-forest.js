@@ -155,7 +155,8 @@ RandomForest.prototype.fitTree = function(data, useMedian) {
   if (dataSplit[0].length == 0 || dataSplit[1].length == 0)
     return new Leaf(representativeRow);
 
-  var children = dataSplit.map(this.fitTree, useMedian);
+  var forest = this;
+  var children = dataSplit.map(function(data) { return forest.fitTree(data, useMedian); });
 
   return new NonLeaf(bestSplit, children[0], children[1]);
 }
