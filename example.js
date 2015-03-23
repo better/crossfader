@@ -1,4 +1,4 @@
-var RandomForest = require('./random_forests'),
+var RandomForest = require('./random-forest'),
     fs = require('fs');
 
 function readExample(callback) {
