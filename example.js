@@ -2,7 +2,7 @@ var RandomForest = require('./random_forests'),
     fs = require('fs');
 
 function readExample(callback) {
-  var rawData = require('./data.json');
+  var rawData = require('./stock-data.json');
   var headers = {};
   for (k in rawData)
     for (m in rawData[k])
