@@ -48,9 +48,8 @@ function crossValidate(data, nEstimators, useMedian) {
     }
 
     // Fit model
-    var model = new RandomForest(nEstimators, useMedian);
-    model.train(trainData);
-    console.log(JSON.stringify(model.serialize()));
+    var model = new RandomForest();
+    model.train(trainData, nEstimators, useMedian, 100, 10);
 
     // Predict missing values from the test set
     for (var i = 0; i < testData.length; i++) {

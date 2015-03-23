@@ -90,14 +90,8 @@ NonLeaf.prototype.serialize = function() {
   return {'type': 'nonleaf', 'split': this._split.serialize(), 'L': this._lChild.serialize(), 'R': this._rChild.serialize()};
 }
 
-function RandomForest(nEstimators, useMedian) {
-  this._nEstimators = nEstimators;
-  this._useMedian = useMedian;
+function RandomForest() {
   this._estimators = [];
-
-  // Hardcoded shit for now
-  this._maxFeatures = 100; // Sampling from k^2 feature pairs
-  this._minLeaf = 10;
 }
 
 RandomForest.prototype.fitTree = function(data, useMedian) {
@@ -161,7 +155,13 @@ RandomForest.prototype.fitTree = function(data, useMedian) {
   return new NonLeaf(bestSplit, children[0], children[1]);
 }
 
-RandomForest.prototype.train = function(data) {
+RandomForest.prototype.train = function(data, nEstimators, useMedian, maxFeatures, minLeaf) {
+  // Only used during training
+  this._nEstimators = nEstimators;
+  this._useMedian = useMedian;
+  this._maxFeatures = maxFeatures; // Sampling from k^2 feature pairs
+  this._minLeaf = minLeaf;
+
   for (var i = 0; i < this._nEstimators; i++) {
     var bootstrappedData = bootstrap(data);
     this._estimators.push(this.fitTree(bootstrappedData, this._useMedian));
@@ -174,6 +174,10 @@ RandomForest.prototype.fill = function(row) {
 
 RandomForest.prototype.serialize = function() {
   return {'estimators': this._estimators.map(function(e) { return e.serialize(); })};
+}
+
+RandomForest.deserialize = function(data) {
+    
 }
 
 module.exports = RandomForest;
