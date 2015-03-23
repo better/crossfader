@@ -73,7 +73,7 @@ Leaf.prototype.fill = function(row) {
 }
 
 Leaf.prototype.serialize = function() {
-  return {'t': 'l', 'row': this._representativeRow};
+  return {'t': 'l', 'r': this._representativeRow};
 }
 
 function NonLeaf(split, lChild, rChild) {
@@ -87,7 +87,7 @@ NonLeaf.prototype.fill = function(row) {
 }
 
 NonLeaf.prototype.serialize = function() {
-  return {'t': 'nl', 'split': this._split.serialize(), 'L': this._lChild.serialize(), 'R': this._rChild.serialize()};
+  return {'t': 'nl', 's': this._split.serialize(), 'L': this._lChild.serialize(), 'R': this._rChild.serialize()};
 }
 
 function RandomForest(estimators) {
@@ -180,11 +180,13 @@ RandomForest.deserialize = function(data) {
   if (data['t'] == 'f')
     return new RandomForest(data['estimators'].map(RandomForest.deserialize));
   else if (data['t'] == 'l')
-    return new Leaf(data['row']);
+    return new Leaf(data['r'].map(parseFloat));
   else if (data['t'] == 'nl')
-    return new NonLeaf(new SplitPoint(data['split']['fx'], data['split']['bx'], data['split']['pm'], data['split']['pt']),
+    return new NonLeaf(new SplitPoint(parseFloat(data['s']['fx']), parseFloat(data['s']['bx']), parseFloat(data['s']['pm']), parseFloat(data['s']['pt'])),
 		       RandomForest.deserialize(data['L']),
 		       RandomForest.deserialize(data['R']))
 }
 
-module.exports = RandomForest;
+try {
+  module.exports = RandomForest;
+} catch(err) {}
