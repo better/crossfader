@@ -1,7 +1,3 @@
-// Hardcoded shit for now
-var maxFeatures = 100; // Sampling from k^2 feature pairs
-var minLeaf = 10;
-
 function bootstrap(data) {
   var dataSampled = [];
   for (var i = 0; i < data.length;i++)
@@ -14,9 +10,9 @@ function sampleRow(data) {
   var result = [];
   for (var j = 0; j < data[0].length; j++) {
     var k = 1;
-    var r = null;
+    var r = undefined;
     for (var i = 0; i < data.length; i++)
-      if (data[i][j] !== null)
+      if (data[i][j] !== undefined)
 	if (Math.random() * k++ < 1.0)
 	  r = data[i][j];
     result.push(r);
@@ -30,7 +26,7 @@ function median(data) {
   for (var j = 0; j < data[0].length; j++) {
     var elms = []
     for (var i = 0; i < data.length; i++)
-      if (data[i][j] !== null)
+      if (data[i][j] !== undefined)
 	elms.push(data[i][j]);
 
     if (elms.length % 2)
@@ -41,14 +37,58 @@ function median(data) {
   return result;
 }
 
-function copyNonNull(src, dst) {
+function copyDefined(src, dst) {
   for (var j = 0; j < dst.length; j++)
-    if (dst[j] === null)
+    if (dst[j] === undefined)
       dst[j] = src[j];
   return dst;
 }
 
-function fitTree(data, useMedian) {
+function SplitPoint(fx, bx, pMissing) {
+  this._fx = fx;
+  this._bx = bx;
+  this._pTies = Math.random();
+  this._pMissing = pMissing;
+}
+
+SplitPoint.prototype.getSide = function(row) {
+  if (row[this._fx] == undefined)
+    return (Math.random() < this._pMissing) ? 1 : 0;
+  else if (row[this._fx] == this._bx)
+    return (Math.random() < this._pTies) ? 1 : 0;
+  else
+    return (row[this._fx] < this._bx) ? 1 : 0;
+}
+
+function Leaf(representativeRow) {
+  this._representativeRow = representativeRow;
+}
+
+Leaf.prototype.fill = function(row) {
+   return copyDefined(this._representativeRow, row.slice(0));
+}
+
+function NonLeaf(split, lChild, rChild) {
+  this._split = split;
+  this._lChild = lChild;
+  this._rChild = rChild;
+}
+
+NonLeaf.prototype.fill = function(row) {
+  return [this._lChild, this._rChild][this._split.getSide(row)].fill(row);
+}
+
+function RandomForest(nEstimators, useMedian) {
+  this._nEstimators = nEstimators;
+  this._useMedian = useMedian;
+  this._estimators = [];
+
+  // Hardcoded shit for now
+  this._maxFeatures = 100; // Sampling from k^2 feature pairs
+  this._minLeaf = 10;
+}
+
+RandomForest.prototype.fitTree = function(data, useMedian) {
   // Returns a classifier
 
   // Compute an representative feature vector
@@ -58,13 +98,13 @@ function fitTree(data, useMedian) {
     var representativeRow = sampleRow(data);
 
   // Handle leaf nodes (too few data points)
-  if (data.length <= minLeaf) {
-    return function(row) { return copyNonNull(representativeRow, row.slice(0)); }
+  if (data.length <= this._minLeaf) {
+    return new Leaf(representativeRow);
   }
 
   var nFeatures = data[0].length;
-  var bestIg = 0.0, bestFunc = null;
-  for (var i = 0; i < maxFeatures; i++) {
+  var bestIg = 0.0, bestSplit = undefined;
+  for (var i = 0; i < this._maxFeatures; i++) {
     // Sample features
     var fx = Math.floor(Math.random() * nFeatures);
     var fy = Math.floor(Math.random() * nFeatures);
@@ -89,53 +129,34 @@ function fitTree(data, useMedian) {
 
     if (!isNaN(ig) && ig > bestIg) {
       bestIg = ig;
-      function createFunc(fx, bx, pTies, pMissing) {
-	var _fx = fx, _bx = bx, _pTies = pTies, _pMissing = pMissing;
-	return function(row) {
-	  if (row[_fx] == null)
-	    return (Math.random() < _pMissing) ? 1 : 0;
-	  else if (row[_fx] == _bx)
-	    return (Math.random() < _pTies) ? 1 : 0;
-	  else
-	    return (row[_fx] < _bx) ? 1 : 0;
-	};
-      }
-      bestFunc = createFunc(fx, bx, pTies, pMissing);
+      bestSplit = new SplitPoint(fx, bx, pMissing);
     }
   }
 
-  if (bestIg == 0) {
-    return function(row) { return copyNonNull(representativeRow, row.slice(0)); }
-  }
+  if (bestIg == 0)
+    return new Leaf(representativeRow);
 
   var dataSplit = [[], []];
   for (var i = 0; i < data.length; i++)
-    dataSplit[bestFunc(data[i])].push(data[i]);
+    dataSplit[bestSplit.getSide(data[i])].push(data[i]);
 
-  if (dataSplit[0].length == 0 || dataSplit[1].length == 0) {
-    return function(row) { return copyNonNull(representativeRow, row.slice(0)); }
-  }
+  if (dataSplit[0].length == 0 || dataSplit[1].length == 0)
+    return new Leaf(representativeRow);
 
-  var funcs = dataSplit.map(fitTree, useMedian);
+  var children = dataSplit.map(this.fitTree, useMedian);
 
-  return function(row) {
-    var result = funcs[bestFunc(row)](row);
-    return copyNonNull(representativeRow, result);
-  }
+  return new NonLeaf(bestSplit, children[0], children[1]);
 }
 
-function fit(data, nEstimators, useMedian) {
-  estimators = [];
-  for (var i = 0; i < nEstimators; i++) {
+RandomForest.prototype.train = function(data) {
+  for (var i = 0; i < this._nEstimators; i++) {
     var bootstrappedData = bootstrap(data);
-    estimators.push(fitTree(bootstrappedData, useMedian));
+    this._estimators.push(this.fitTree(bootstrappedData, this._useMedian));
   }
-
-  function sample(row, nSamples) {
-    return estimators[Math.floor(Math.random() * estimators.length)](row);
-  }
-
-  return sample;
 }
 
-module.exports = fit;
+RandomForest.prototype.fill = function(row) {
+  return this._estimators[Math.floor(Math.random() * this._nEstimators)].fill(row);
+}
+
+module.exports = RandomForest;
