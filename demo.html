@@ -8,6 +8,8 @@
     <script src="headers.js"></script>
     <script src="random-forest.js"></script>
     <script src="demo.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    <script src="d3-test.js"></script>
     <style>
 body {
   font: 10px sans-serif;
@@ -27,18 +29,23 @@ body {
   stroke: #000;
   shape-rendering: crispEdges;
 }
+
+.chart-header {
+}
+
+.chart {
+  height: 128px;
+}
     </style>
   </head>
   <body>
     <div class="container" ng-app="myApp" ng-controller="InputController">
       <div class="row">
 	<div class="col-md-3" ng-repeat="header in headers">
-	  <h4>{{ header }}</h4>
-	  <div id="chart-{{ $index }}"></div>
+	  <h4 class="chart-header">{{ header }}</h4>
+	  <div class="chart" render-chart></div>
 	</div>
       </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
-    <script src="d3-test.js"></script>
   </body>
 </html>
