@@ -125,15 +125,18 @@ RandomForest.prototype.fitTree = function(data, useMedian) {
       c[data[j][fx] < bx ? 1 : 0][data[j][fy] < by ? 1 : 0]++;
 
     // Calculate information gain
-    function entropy(p) { return -p * Math.log(p) - (1 - p) * Math.log(1-p); }
-    var H1 = entropy((c[0][0] + c[1][0]) / data.length);
-    var H2 = (c[0][0] + c[0][1]) / data.length * (entropy(c[0][0] / (c[0][0] + c[0][1]))) + (c[1][0] + c[1][1]) / data.length * (entropy(c[1][0] / (c[1][0] + c[1][1])));
+    function xlogx(x) { return x > 0 ? (x * Math.log(x)) : 0; }
+    function entropy(a, b) { return -(xlogx(a) + xlogx(b) - xlogx(a + b)) / (a + b); }
+    var PX0 = (c[0][0] + c[0][1]) / data.length, PX1 = (c[1][0] + c[1][1]) / data.length;
+    var H1 = entropy(c[0][0] + c[1][0], c[1][0] + c[1][1]); // Entropy of Y
+    var H2 = PX0 * entropy(c[0][0], c[0][1]) + PX1 * entropy(c[1][0], c[1][1]) // Expected entropy of Y given X
 
     var ig = H1 - H2;
     var pMissing = (c[0][0] + c[0][1] + 1.0) / (data.length + 2.0); // Mean of posterior assuming a Beta(1, 1) prior
     var pTies = Math.random(); // This ensures the split is uniform in the presense of points with infinite probability distribution
 
     if (!isNaN(ig) && ig > bestIg) {
+      // console.log(i + ':   ' + ig);
       bestIg = ig;
       bestSplit = new SplitPoint(fx, bx, pMissing);
     }
@@ -163,6 +166,7 @@ RandomForest.prototype.train = function(data, nEstimators, useMedian, maxFeature
   this._minLeaf = minLeaf;
 
   for (var i = 0; i < this._nEstimators; i++) {
+    console.log('estimator ' + i + '...');
     var bootstrappedData = bootstrap(data);
     this._estimators.push(this.fitTree(bootstrappedData, this._useMedian));
   }
@@ -182,7 +186,7 @@ RandomForest.deserialize = function(data) {
   else if (data['t'] == 'l')
     return new Leaf(data['r'].map(parseFloat));
   else if (data['t'] == 'nl')
-    return new NonLeaf(new SplitPoint(parseFloat(data['s']['fx']), parseFloat(data['s']['bx']), parseFloat(data['s']['pm']), parseFloat(data['s']['pt'])),
+    return new NonLeaf(new SplitPoint(parseInt(data['s']['fx']), parseFloat(data['s']['bx']), parseFloat(data['s']['pm']), parseFloat(data['s']['pt'])),
 		       RandomForest.deserialize(data['L']),
 		       RandomForest.deserialize(data['R']))
 }
