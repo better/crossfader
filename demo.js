@@ -2,27 +2,28 @@ var model = RandomForest.deserialize(data);
 
 var app = angular.module("myApp",[]);
 app.controller('InputController', function($scope){
-
-  $scope.row = [];
-  for (var j = 0; j < headers.length; j++)
-    $scope.row.push(undefined);
-
   $scope.headers = headers.map(function(x) { return x.replace(/_/g, ' '); });
   $scope.charts = [];
 });
 
 app.directive("renderChart",function(){
   return function($scope, element, attrs){
-    var chart = new Chart(element);
+    var chart = new Chart(element, function() { redraw($scope.charts); });
     $scope.charts.push(chart);
     
-    if ($scope.charts.length == $scope.row.length) {
-      redraw($scope.charts, $scope.row);
+    if ($scope.charts.length == $scope.headers.length) {
+      redraw($scope.charts);
     }
   }
 });
 
-function redraw(charts, row) {
+function redraw(charts) {
+  var row = [];
+  for (var j = 0; j < charts.length; j++)
+    row.push(charts[j].fixedValue);
+
+  console.log(row);
+
   var samples = [];
   for (var j = 0; j < row.length; j++)
     samples.push([]);
@@ -34,16 +35,17 @@ function redraw(charts, row) {
   }
 
   for (var j = 0; j < row.length; j++) {
-    console.log('redrawing ' + j);
     charts[j].update(samples[j]);
   }
 }
 
-function Chart(element) {
+function Chart(element, redraw) {
   this.margin = {top: 10, right: 30, bottom: 30, left: 30};
   this.width = element[0].offsetWidth,
   this.height = element[0].offsetHeight,
   this.nBins = 30;
+  this.fixedValue = undefined;
+  this.redraw = redraw;
 
   var barWidth = Math.floor(this.width/this.nBins);
   this.width = barWidth * this.nBins;
@@ -64,7 +66,7 @@ function Chart(element) {
     .attr('stroke-weight', '5')
     .attr('fill', 'none');
 
-  /*var focus = svg.append("g")
+  var focus = svg.append("g")
       .attr("class", "focus")
       .style("display", "none");
   
@@ -78,49 +80,62 @@ function Chart(element) {
   svg.append("rect")
     .attr("fill", "none")
     .attr("pointer-events", "all")
-    .attr("width", width)
-    .attr("height", height)
+    .attr("width", this.width)
+    .attr("height", this.height)
     .on("mouseover", function() { focus.style("display", null); })
     .on("mouseout", function() { focus.style("display", "none"); })
-    .on("mousemove", mousemove);
+    .on("mousemove", getEventHandler(false))
+    .on("click", getEventHandler(true));
 
+  var bisectData = d3.bisector(function(d) { return d.x; }).left;
 
-  this.bisectData = d3.bisector(function(d) { return d.x; }).left;
-  
-  function mousemove() {
-    var x0 = x.invert(d3.mouse(this)[0]),
-	i = bisectData(data, x0, 1),
-	d = data[i];
-    // TODO: linear interpolateation 
-    focus.attr("transform", "translate(" + x(d.x) + "," + y(d.y) + ")");
-    focus.select("text").text(d.x);
-    setValue(d.x);
-  }*/
+  var chart = this;
+
+  function getEventHandler(update) {
+    return function() {
+      if (!chart.data)
+	return;
+    
+      var x0 = chart.x.invert(d3.mouse(this)[0]),
+	  i = bisectData(chart.data, x0, 1),
+	  d = chart.data[i];
+      
+      // TODO: linear interpolation
+      focus.attr("transform", "translate(" + chart.x(d.x) + "," + chart.y(d.y) + ")");
+      focus.select("text").text(x0);
+      
+      if (update) {
+	chart.fixedValue = x0;
+	chart.redraw();
+      }
+    }
+  }
 }
 
 Chart.prototype.update = function(samples) {
- var x = d3.scale.linear()
-      .domain([d3.min(samples), d3.max(samples)])
-      .range([0, this.width]);
+  this.x = d3.scale.linear()
+    .domain([d3.min(samples), d3.max(samples)])
+    .range([0, this.width]);
   
   var bins = d3.layout.histogram()
-      .bins(x.ticks(this.nBins));
+      .bins(this.x.ticks(this.nBins));
 
-  var data = bins(samples);
+  this.data = bins(samples);
 
-  var y = d3.scale.linear()
-      .domain([0, d3.max(data, function(d) { return d.y; })])
-      .range([this.height, 0]);
+  this.y = d3.scale.linear()
+    .domain([0, d3.max(this.data, function(d) { return d.y; })])
+    .range([this.height, 0]);
 
   var xAxis = d3.svg.axis()
-      .scale(x)
+      .scale(this.x)
       .orient("bottom");
 
+  var chart = this;
   var lineFunction = d3.svg.line()
-      .x(function(d) { return x(d.x); })
-      .y(function(d) { return y(d.y); })
+      .x(function(d) { return chart.x(d.x); })
+      .y(function(d) { return chart.y(d.y); })
       .interpolate("basis");
 
-  this.path.attr('d', lineFunction(data))
+  this.path.attr('d', lineFunction(this.data))
 }
 
