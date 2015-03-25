@@ -8,21 +8,30 @@ app.controller('InputController', function($scope){
 
 app.directive("renderChart",function(){
   return function($scope, element, attrs){
-    var chart = new Chart(element, function() { redraw($scope.charts); });
+    var j = $scope.$index;
+    var getUpdateFn = function(index) {
+      return function(update, newValue) { redraw($scope.charts, update, index, newValue); };
+    }
+    var chart = new Chart(element, getUpdateFn(j));
+
     $scope.charts.push(chart);
     
     if ($scope.charts.length == $scope.headers.length) {
-      redraw($scope.charts);
+      redraw($scope.charts, true);
     }
   }
 });
 
-function redraw(charts) {
+function redraw(charts, update, index, newValue) {
+  if (update && newValue != undefined)
+    charts[index].fixedValue = newValue;
+
   var row = [];
   for (var j = 0; j < charts.length; j++)
     row.push(charts[j].fixedValue);
 
-  console.log(row);
+  if (newValue != undefined)
+    row[index] = newValue;
 
   var samples = [];
   for (var j = 0; j < row.length; j++)
@@ -35,7 +44,10 @@ function redraw(charts) {
   }
 
   for (var j = 0; j < row.length; j++) {
-    charts[j].update(samples[j]);
+    if (update)
+      charts[j].update(samples[j]);
+    else
+      charts[j].updateHypothetical(samples[j]);
   }
 }
 
@@ -52,17 +64,21 @@ function Chart(element, redraw) {
   
   var svg = d3.select(element[0])
       .append('svg')
-      .attr("width", this.width + this.margin.left + this.margin.right)
-      .attr("height", this.height + this.margin.top + this.margin.bottom)
+      .attr("width", this.width) // + this.margin.left + this.margin.right)
+      .attr("height", this.height) // - this.margin.top - this.margin.bottom)
       .append("g");
 
-/*  svg.append("g")
+  this.axis = svg.append("g")
     .attr("class", "x axis")
-    .attr("transform", "translate(0," + (height-margin.bottom) + ")")
-    .call(xAxis);*/
+    .attr("transform", "translate(0," + (this.height - this.margin.bottom) + ")");
 
   this.path = svg.append('path')
     .attr('stroke', 'black')
+    .attr('stroke-weight', '5')
+    .attr('fill', 'none');
+
+  this.hypotheticalPath = svg.append('path')
+    .attr('stroke', 'red')
     .attr('stroke-weight', '5')
     .attr('fill', 'none');
 
@@ -104,10 +120,7 @@ function Chart(element, redraw) {
       focus.attr("transform", "translate(" + chart.x(d.x) + "," + chart.y(d.y) + ")");
       focus.select("text").text(x0);
       
-      if (update) {
-	chart.fixedValue = x0;
-	chart.redraw();
-      }
+      chart.redraw(update, x0);
     }
   }
 }
@@ -117,18 +130,20 @@ Chart.prototype.update = function(samples) {
     .domain([d3.min(samples), d3.max(samples)])
     .range([0, this.width]);
   
-  var bins = d3.layout.histogram()
+  this.bins = d3.layout.histogram()
       .bins(this.x.ticks(this.nBins));
 
-  this.data = bins(samples);
+  this.data = this.bins(samples);
 
   this.y = d3.scale.linear()
     .domain([0, d3.max(this.data, function(d) { return d.y; })])
-    .range([this.height, 0]);
+    .range([this.height - this.margin.bottom, 0]);
 
   var xAxis = d3.svg.axis()
       .scale(this.x)
       .orient("bottom");
+
+  this.axis.call(xAxis);
 
   var chart = this;
   var lineFunction = d3.svg.line()
@@ -139,3 +154,14 @@ Chart.prototype.update = function(samples) {
   this.path.attr('d', lineFunction(this.data))
 }
 
+Chart.prototype.updateHypothetical = function(samples) {
+  var data = this.bins(samples);
+
+  var chart = this;
+  var lineFunction = d3.svg.line()
+      .x(function(d) { return chart.x(d.x); })
+      .y(function(d) { return chart.y(d.y); })
+      .interpolate("basis");
+
+  this.hypotheticalPath.attr('d', lineFunction(data));  
+}
