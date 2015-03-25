@@ -1,0 +1,1 @@
+var headers = ["fifty_two_week_low","two_hundred_day_moving_avg","market_cap","fifty_two_week_high","price_sales_ratio","price_earnings_growth_ratio","price","fifty_day_moving_avg","price_book_ratio","earnings_per_share","volume","book_value","short_ratio","price_earnings_ratio","dividend_yield","avg_daily_volume","ebitda","change","dividend_per_share"];
