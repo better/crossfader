@@ -6,6 +6,9 @@ import theano
 import theano.tensor as T
 from theano.tensor.nnet import sigmoid
 
+def floatX(x):
+    return numpy.asarray(x, dtype=theano.config.floatX)
+
 stock_data = json.load(open('stock-data.json'))
 
 headers = set()
@@ -28,8 +31,8 @@ for i in xrange(K):
     x = random.choice(samples[j])
     splits.append((j, x))
 
-M = numpy.zeros((len(stock_data), K))
-V = numpy.zeros((len(stock_data), K))
+M = numpy.zeros((len(stock_data), K), dtype=theano.config.floatX)
+V = numpy.zeros((len(stock_data), K), dtype=theano.config.floatX)
 
 for i, stock in enumerate(stock_data.keys()):
     for k, split in enumerate(splits):
@@ -50,10 +53,10 @@ n_hidden_layers = 4
 n_hidden_units = 256
 
 def W_values(n_in, n_out):
-    return numpy.asarray(numpy.random.uniform(
+    return numpy.random.uniform(
         low=-numpy.sqrt(6. / (n_in + n_out)),
         high=numpy.sqrt(6. / (n_in + n_out)),
-        size=(n_in, n_out)), dtype=theano.config.floatX)
+        size=(n_in, n_out))
 
 srng = theano.tensor.shared_randomstreams.RandomStreams()
 
@@ -74,13 +77,13 @@ for l in xrange(n_hidden_layers + 1):
 
     W_s = theano.shared(W_values(n_in, n_out))
     gamma = 0.1 # initialize it to slightly positive so the derivative exists
-    b_s = theano.shared(numpy.ones(n_out, dtype=theano.config.floatX) * gamma)
+    b_s = theano.shared(numpy.ones(n_out) * gamma)
 
     params += [W_s, b_s]
 
     h = T.dot(h, W_s) + b_s
-    mask = srng.binomial(n=1, p=0.5, size=h.shape)
-    h = h * T.cast(mask, theano.config.floatX) * 2
+    #mask = srng.binomial(n=1, p=0.5, size=h.shape)
+    #h = h * mask * 2
 
 output = sigmoid(h)
     
@@ -92,18 +95,15 @@ def nesterov_updates(loss, all_params, learn_rate, momentum):
     all_grads = T.grad(loss, all_params)
     for param_i, grad_i in zip(all_params, all_grads):
         # generate a momentum parameter
-        mparam_i = theano.shared(
-            numpy.array(param_i.get_value()*0., dtype=theano.config.floatX))
+        mparam_i = theano.shared(numpy.array(param_i.get_value()*0.))
         v = momentum * mparam_i - learn_rate * grad_i
         w = param_i + momentum * v - learn_rate * grad_i
         updates.append((param_i, w))
         updates.append((mparam_i, v))
     return updates
 
-learning_rate = T.scalar()
-
-updates = nesterov_updates(loss, params, learning_rate, 0.9)
-loss_f = theano.function([learning_rate, m, v], loss, updates=updates)
+updates = nesterov_updates(loss, params, 0.1, 0.9)
+loss_f = theano.function([m, v], loss, updates=updates)
 
 while True:
-    print loss_f(1e-1, M, V)
+    print loss_f(M, V)
