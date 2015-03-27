@@ -9,48 +9,36 @@ from theano.tensor.nnet import sigmoid
 def floatX(x):
     return numpy.asarray(x, dtype=theano.config.floatX)
 
-stock_data = json.load(open('stock-data.json'))
+data = json.load(open('stock-data.json'))
 
-headers = set()
-for k, v in stock_data.iteritems():
-    headers.update(set(v.keys()))
+headers = sorted(list(set([key for v in data.values() for key in v.keys()])))
+values = [[v[header] for v in data.values() if header in v] for header in headers]
 
-headers = list(headers)
-
-samples = [[] for h in headers]
-
-for k, v in stock_data.iteritems():
-    for j, m in enumerate(headers):
-        if headers[j] in v:
-            samples[j].append(v[headers[j]])
-
+D = len(data)
 K = 1000 # Random splits
 splits = []
 for i in xrange(K):
     j = random.randint(0, len(headers)-1)
-    x = random.choice(samples[j])
-    splits.append((j, x))
+    splits.append((j, random.choice(values[j])))
 
-M = numpy.zeros((len(stock_data), K), dtype=theano.config.floatX)
-V = numpy.zeros((len(stock_data), K), dtype=theano.config.floatX)
+M = numpy.zeros((D, K), dtype=theano.config.floatX)
+V = numpy.zeros((D, K), dtype=theano.config.floatX)
 
-for i, stock in enumerate(stock_data.keys()):
+for i, key in enumerate(data.keys()):
     for k, split in enumerate(splits):
-        j, x = split
-        if headers[j] not in stock_data[stock]:
+        j, x_split = split
+        if headers[j] not in data[key]:
             continue
-        y = stock_data[stock][headers[j]]
-        if y < x:
+        x = data[key][headers[j]]
+        if x < x_split:
             M[i][k] = 1
-            V[i][k] = 0
-        elif y > x:
+        elif x > x_split:
             M[i][k] = 1
             V[i][k] = 1
 
-
 # Train an autoencoder to reconstruct the rows of the V matrices
-n_hidden_layers = 4
-n_hidden_units = 256
+n_hidden_layers = 2
+n_hidden_units = 64
 
 def W_values(n_in, n_out):
     return numpy.random.uniform(
@@ -82,8 +70,11 @@ for l in xrange(n_hidden_layers + 1):
     params += [W_s, b_s]
 
     h = T.dot(h, W_s) + b_s
-    #mask = srng.binomial(n=1, p=0.5, size=h.shape)
-    #h = h * mask * 2
+
+    if l < n_hidden_layers:
+        h = h * (h > 0) # relu
+        mask = srng.binomial(n=1, p=0.5, size=h.shape)
+        h = h * mask * 2
 
 output = sigmoid(h)
     
@@ -102,8 +93,25 @@ def nesterov_updates(loss, all_params, learn_rate, momentum):
         updates.append((mparam_i, v))
     return updates
 
-updates = nesterov_updates(loss, params, 0.1, 0.9)
+updates = nesterov_updates(loss, params, 1e0, 0.9)
 loss_f = theano.function([m, v], loss, updates=updates)
 
-while True:
+for iter in xrange(1000000):
     print loss_f(M, V)
+
+    if (iter + 1) % 200 == 0:
+        W = params[0].get_value()
+
+        def cos(a, b):
+            p, q = W[a], W[b]
+            return numpy.dot(p, q) / math.sqrt(numpy.dot(p, p) * numpy.dot(q, q))
+
+        for a in xrange(5):
+            bs = sorted(xrange(K), key=lambda b: cos(a, b), reverse=True)
+            for b in bs[:10]:
+                j, split_x = splits[b]
+                print '%.4f %30s %15.2f' % (cos(a, b), headers[j], split_x)
+            print
+
+
+        
