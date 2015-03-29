@@ -16,10 +16,15 @@ values = [[v[header] for v in data.values() if header in v] for header in header
 
 D = len(data)
 K = 1000 # Random splits
+bins = K / len(headers)
+K = bins * len(headers)
+
 splits = []
-for i in xrange(K):
-    j = random.randint(0, len(headers)-1)
-    splits.append((j, random.choice(values[j])))
+for j in xrange(len(headers)):
+    lo, hi = min(values[j]), max(values[j])
+    for bin in xrange(bins):
+        x_split = lo + (bin + 1) * (hi - lo) * 1. / bins
+        splits.append((j, x_split))
 
 def get_row(data_row, headers_keep=None):
     # V: values
