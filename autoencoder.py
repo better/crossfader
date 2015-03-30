@@ -9,24 +9,22 @@ from theano.tensor.nnet import sigmoid
 def floatX(x):
     return numpy.asarray(x, dtype=theano.config.floatX)
 
-data = json.load(open('stock-data.json'))
 
-headers = sorted(list(set([key for v in data.values() for key in v.keys()])))
-values = [[v[header] for v in data.values() if header in v] for header in headers]
+srng = theano.tensor.shared_randomstreams.RandomStreams()
 
-D = len(data)
-K = 1000 # Random splits
-bins = K / len(headers)
-K = bins * len(headers)
+def get_splits(headers, data, bins):
+    values = [[v[header] for v in data.values() if header in v] for header in headers]
 
-splits = []
-for j in xrange(len(headers)):
-    lo, hi = min(values[j]), max(values[j])
-    for bin in xrange(bins):
-        x_split = lo + (bin + 1) * (hi - lo) * 1. / bins
-        splits.append((j, x_split))
+    splits = []
+    for j in xrange(len(headers)):
+        lo, hi = min(values[j]), max(values[j])
+        for bin in xrange(bins):
+            x_split = lo + (bin + 1) * (hi - lo) * 1. / bins
+            splits.append((j, x_split))
+    return splits
 
-def get_row(data_row, headers_keep=None):
+        
+def get_row(headers, K, data_row, splits, headers_keep=None):
     # V: values
     V_row = numpy.zeros(K, dtype=theano.config.floatX)
     # M: what values are missing
@@ -48,7 +46,8 @@ def get_row(data_row, headers_keep=None):
 
     return V_row, M_row, Q_row
 
-def build_matrices():
+
+def build_matrices(headers, data, D, K, splits):
     V = numpy.zeros((D, K), dtype=theano.config.floatX)
     M = numpy.zeros((D, K), dtype=theano.config.floatX)
     Q = numpy.zeros((D, K), dtype=theano.config.floatX)
@@ -57,9 +56,10 @@ def build_matrices():
         # How many header should we remove
         n_headers_keep = random.randint(0, len(headers))
         headers_keep = set(random.sample(headers, n_headers_keep))
-        V[i], M[i], Q[i] = get_row(data[key], headers_keep)
+        V[i], M[i], Q[i] = get_row(headers, K, data[key], splits, headers_keep)
 
     return V, M, Q
+
 
 def W_values(n_in, n_out):
     return numpy.random.uniform(
@@ -67,9 +67,8 @@ def W_values(n_in, n_out):
         high=numpy.sqrt(6. / (n_in + n_out)),
         size=(n_in, n_out))
 
-srng = theano.tensor.shared_randomstreams.RandomStreams()
 
-def get_parameters():
+def get_parameters(K):
     # Train an autoencoder to reconstruct the rows of the V matrices
     n_hidden_layers = 3
     n_hidden_units = 64
@@ -112,6 +111,7 @@ def get_model(Ws, bs, dropout=False):
 
     return v, m, q, output, loss
 
+
 def nesterov_updates(loss, all_params, learn_rate, momentum):
     updates = []
     all_grads = T.grad(loss, all_params)
@@ -124,47 +124,66 @@ def nesterov_updates(loss, all_params, learn_rate, momentum):
         updates.append((mparam_i, v))
     return updates
 
+
 def get_train_f(Ws, bs):
     v, m, q, output, loss = get_model(Ws, bs, dropout=True)
     updates = nesterov_updates(loss, Ws + bs, 1e-1, 0.9)
     return theano.function([v, m, q], loss, updates=updates)
 
+
 def get_pred_f(Ws, bs):
     v, m, q, output, loss = get_model(Ws, bs, dropout=False)
     return theano.function([v, m, q], output)
 
-Ws, bs = get_parameters()
-train_f = get_train_f(Ws, bs)
-pred_f = get_pred_f(Ws, bs)
 
-for iter in xrange(1000000):
-    V, M, Q = build_matrices()
-    print train_f(V, M, Q)
+def train(headers, data):
+    D = len(data)
+    K = 1000 # Random splits
+    bins = K / len(headers)
+    K = bins * len(headers)
 
-    if (iter + 1) % 20 == 0:
-        W = Ws[0].get_value()
+    splits = get_splits(headers, data, bins)
 
-        def cos(a, b):
-            p, q = W[a], W[b]
-            return numpy.dot(p, q) / math.sqrt(numpy.dot(p, p) * numpy.dot(q, q))
+    Ws, bs = get_parameters(K)
+    train_f = get_train_f(Ws, bs)
+    pred_f = get_pred_f(Ws, bs)
 
-        for a in xrange(5):
-            bs = sorted(xrange(K), key=lambda b: cos(a, b), reverse=True)
-            for b in bs[:10]:
-                j, split_x = splits[b]
-                print '%.4f %30s %15.2f' % (cos(a, b), headers[j], split_x)
-            print
-
-        V_row, M_row, Q_row = [x.reshape((1, K)) for x in get_row(data['AAPL'])]
-        V_row_recon = pred_f(V_row, M_row, Q_row).astype(theano.config.floatX)
-
-        print V_row[0,:10]
-        print V_row_recon[0,:10]
+    for iter in xrange(1000000):
+        V, M, Q = build_matrices(headers, data, D, K, splits)
+        print train_f(V, M, Q)
         
-        cdfs = [[] for h in headers]
-        for i, split in enumerate(splits):
-            j, x_split = split
-            cdfs[j].append((x_split, V_row_recon[0][i]))
+        if (iter + 1) % 20 == 0:
+            W = Ws[0].get_value()
+            
+            def cos(a, b):
+                p, q = W[a], W[b]
+                return numpy.dot(p, q) / math.sqrt(numpy.dot(p, p) * numpy.dot(q, q))
+        
+            for a in xrange(5):
+                bs = sorted(xrange(K), key=lambda b: cos(a, b), reverse=True)
+                for b in bs[:10]:
+                    j, split_x = splits[b]
+                    print '%.4f %30s %15.2f' % (cos(a, b), headers[j], split_x)
+                print
 
-        for j, header in enumerate(headers):
-            print header, sorted(cdfs[j])
+            V_row, M_row, Q_row = [x.reshape((1, K)) for x in get_row(headers, K, data['AAPL'], splits)]
+            V_row_recon = pred_f(V_row, M_row, Q_row).astype(theano.config.floatX)
+
+            print V_row[0,:10]
+            print V_row_recon[0,:10]
+            
+            cdfs = [[] for h in headers]
+            for i, split in enumerate(splits):
+                j, x_split = split
+                cdfs[j].append((x_split, V_row_recon[0][i]))
+
+            for j, header in enumerate(headers):
+                print header, sorted(cdfs[j])
+    
+if __name__ == '__main__':
+    data = json.load(open('stock-data.json'))
+
+    headers = sorted(list(set([key for v in data.values() for key in v.keys()])))
+
+    train(headers, data)
+
