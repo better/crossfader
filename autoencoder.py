@@ -71,8 +71,8 @@ def W_values(n_in, n_out):
 
 def get_parameters(K):
     # Train an autoencoder to reconstruct the rows of the V matrices
-    n_hidden_layers = 1
-    n_hidden_units = 32
+    n_hidden_layers = 2
+    n_hidden_units = 64
     Ws, bs = [], []
     for l in xrange(n_hidden_layers + 1):
         n_in, n_out = n_hidden_units, n_hidden_units
@@ -128,7 +128,7 @@ def nesterov_updates(loss, all_params, learn_rate, momentum, weight_decay):
 
 
 def get_train_f(Ws, bs):
-    v, m, q, output, loss = get_model(Ws, bs, dropout=False)
+    v, m, q, output, loss = get_model(Ws, bs, dropout=True)
     updates = nesterov_updates(loss, Ws + bs, 1e-1, 0.9, 1e-4)
     return theano.function([v, m, q], loss, updates=updates)
 
@@ -138,9 +138,9 @@ def get_pred_f(Ws, bs):
     return theano.function([v, m, q], output)
 
 
-def train(headers, data, plot_x=None, plot_y=None):
+def train(headers, data, header_plot_x=None, header_plot_y=None):
     D = len(data)
-    K = 200 # Random splits
+    K = 300 # Random splits
     bins = K / len(headers)
     K = bins * len(headers)
 
@@ -155,6 +155,11 @@ def train(headers, data, plot_x=None, plot_y=None):
     for iter in xrange(1000000):
         V, M, Q = build_matrices(headers, data, D, K, splits)
         print train_f(V, M, Q)
+
+        if (iter + 1) % 10 == 0:
+            yield {'K': K, 'bins': bins, 'splits': splits, 'headers': headers,
+                   'Ws': [W.get_value().tolist() for W in Ws],
+                   'bs': [b.get_value().tolist() for b in bs]}
         
         if (iter + 1) % 20 == 0 and header_plot_x and header_plot_y:
             series = []
