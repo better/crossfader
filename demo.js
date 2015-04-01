@@ -1,8 +1,10 @@
-var model = RandomForest.deserialize(data);
+console.log(data);
+var model = Autoencoder.deserialize(data);
+console.log(model);
 
 var app = angular.module("myApp",[]);
 app.controller('InputController', function($scope){
-  $scope.headers = headers.map(function(x) { return x.replace(/_/g, ' '); });
+  $scope.headers = model.headers.map(function(x) { return x.replace(/_/g, ' '); });
   $scope.charts = [];
 });
 
@@ -33,21 +35,13 @@ function redraw(charts, update, index, newValue) {
   if (newValue != undefined)
     row[index] = newValue;
 
-  var samples = [];
-  for (var j = 0; j < row.length; j++)
-    samples.push([]);
-
-  for (var i = 0; i < 1000; i++) {
-    var sample = model.fill(row);
-    for (var j = 0; j < row.length; j++)
-      samples[j].push(sample[j]);
-  }
+  var cdfs = model.getCdfs(row);
 
   for (var j = 0; j < row.length; j++) {
     if (update)
-      charts[j].update(samples[j]);
+      charts[j].update(cdfs[j]);
     else
-      charts[j].updateHypothetical(samples[j]);
+      charts[j].updateHypothetical(cdfs[j]);
   }
 }
 
@@ -112,12 +106,10 @@ function Chart(element, redraw) {
       if (!chart.data)
 	return;
     
-      var x0 = chart.x.invert(d3.mouse(this)[0]),
-	  i = bisectData(chart.data, x0, 1),
-	  d = chart.data[i];
+      var x0 = chart.x.invert(d3.mouse(this)[0]);
       
       // TODO: linear interpolation
-      focus.attr("transform", "translate(" + chart.x(d.x) + "," + chart.y(d.y) + ")");
+      focus.attr("transform", "translate(" + chart.x(x0) + "," + chart.y(0) + ")");
       focus.select("text").text(x0);
       
       chart.redraw(update, x0);
@@ -125,18 +117,15 @@ function Chart(element, redraw) {
   }
 }
 
-Chart.prototype.update = function(samples) {
-  this.x = d3.scale.linear()
-    .domain([d3.min(samples), d3.max(samples)])
-    .range([0, this.width]);
+Chart.prototype.update = function(data) {
+  this.data = data;
   
-  this.bins = d3.layout.histogram()
-      .bins(this.x.ticks(this.nBins));
-
-  this.data = this.bins(samples);
+  this.x = d3.scale.linear()
+    .domain(d3.extent(data, function(d) { return d.x; }))
+    .range([0, this.width]);
 
   this.y = d3.scale.linear()
-    .domain([0, d3.max(this.data, function(d) { return d.y; })])
+    .domain([0.0, 1.0])
     .range([this.height - this.margin.bottom, 0]);
 
   var xAxis = d3.svg.axis()
@@ -154,9 +143,7 @@ Chart.prototype.update = function(samples) {
   this.path.attr('d', lineFunction(this.data))
 }
 
-Chart.prototype.updateHypothetical = function(samples) {
-  var data = this.bins(samples);
-
+Chart.prototype.updateHypothetical = function(data) {
   var chart = this;
   var lineFunction = d3.svg.line()
       .x(function(d) { return chart.x(d.x); })
