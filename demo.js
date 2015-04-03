@@ -35,13 +35,13 @@ function redraw(charts, update, index, newValue) {
   if (newValue != undefined)
     row[index] = newValue;
 
-  var cdfs = model.getCdfs(row);
+  var pdfs = model.getPdfs(row);
 
   for (var j = 0; j < row.length; j++) {
     if (update)
-      charts[j].update(cdfs[j]);
+      charts[j].update(pdfs[j]);
     else
-      charts[j].updateHypothetical(cdfs[j]);
+      charts[j].updateHypothetical(pdfs[j]);
   }
 }
 
@@ -125,7 +125,7 @@ Chart.prototype.update = function(data) {
     .range([0, this.width]);
 
   this.y = d3.scale.linear()
-    .domain([0.0, 1.0])
+    .domain([0, d3.max(data, function(d) { return d.y; })])
     .range([this.height - this.margin.bottom, 0]);
 
   var xAxis = d3.svg.axis()

@@ -12,7 +12,7 @@ Autoencoder.deserialize = function(data) {
 			 data['bs']);
 }
 
-Autoencoder.prototype.getCdfs = function(row) {
+Autoencoder.prototype.getOutput = function(row) {
   var input = [];
   for (var i = 0; i < this.splits.length; i++) {
     var j = this.splits[i][0];
@@ -45,8 +45,11 @@ Autoencoder.prototype.getCdfs = function(row) {
     }
     row = nextRow
   }
+  return row;
+}
 
-  // Compute cdfs
+Autoencoder.prototype.getCdfs = function(row) {
+  var row = this.getOutput(row);
   var cdfs = [];
   for (var i = 0; i < this.splits.length; i++) {
     var j = this.splits[i][0];
@@ -56,4 +59,38 @@ Autoencoder.prototype.getCdfs = function(row) {
     cdfs[j].push({'x': x, 'y': row[i]});
   }
   return cdfs;
+}
+
+Autoencoder.prototype.getPdfs = function(row, points) {
+  // We cheat a bit and define some smoothing
+  // Let's approximate the CDF as a sum of sigmoids:
+  // CDF = sum_i (row[i+1] - row[i]) * sigm(i2 - i)
+  // Where i2 is a fractional version of i
+  // Then take the derivative to get the PDF
+  var cdfs = this.getCdfs(row);
+
+  if (points == undefined)
+    points = 100;
+
+  var pdfs = [];
+
+  for (var j = 0; j < row.length; j++) {
+    pdfs.push([]);
+    // console.log(cdfs[j]);
+    for (var p = 0; p < points; p++) {
+      var x = cdfs[j][0].x + (cdfs[j][cdfs[j].length-1].x - cdfs[j][0].x) * p / (points - 1);
+      var i = p / (points - 1) * (cdfs[j].length); // todo: assumes even spacing
+      var y = 0.0;
+
+      for (var i2 = 0; i2 < cdfs[j].length; i2++) {
+	var d = cdfs[j][i2].y;
+	if (i2 > 0) d -= cdfs[j][i2-1].y;
+	var s = 1.0 / (1 + Math.exp(i2 - i));
+	y += d * s * (1 - s);
+	// console.log(i2 + ' ' + d + ' ' + s);
+      }
+      pdfs[j].push({'x': x, 'y': y});
+    }
+  }
+  return pdfs;
 }
