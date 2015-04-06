@@ -137,8 +137,7 @@ Chart.prototype.update = function(data) {
   var chart = this;
   var lineFunction = d3.svg.line()
       .x(function(d) { return chart.x(d.x); })
-      .y(function(d) { return chart.y(d.y); })
-      .interpolate("basis");
+      .y(function(d) { return chart.y(d.y); });
 
   this.path.attr('d', lineFunction(this.data))
 }
@@ -147,8 +146,7 @@ Chart.prototype.updateHypothetical = function(data) {
   var chart = this;
   var lineFunction = d3.svg.line()
       .x(function(d) { return chart.x(d.x); })
-      .y(function(d) { return chart.y(d.y); })
-      .interpolate("basis");
+      .y(function(d) { return chart.y(d.y); });
 
   this.hypotheticalPath.attr('d', lineFunction(data));  
 }
