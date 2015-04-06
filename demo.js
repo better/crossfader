@@ -35,13 +35,13 @@ function redraw(charts, update, index, newValue) {
   if (newValue != undefined)
     row[index] = newValue;
 
-  var pdfs = model.getPdfs(row);
+  var curves = model.getPdfs(row);
 
   for (var j = 0; j < row.length; j++) {
     if (update)
-      charts[j].update(pdfs[j]);
+      charts[j].update(curves[j].xy);
     else
-      charts[j].updateHypothetical(pdfs[j]);
+      charts[j].updateHypothetical(curves[j].xy);
   }
 }
 

@@ -55,8 +55,8 @@ Autoencoder.prototype.getCdfs = function(row) {
     var j = this.splits[i][0];
     var x = this.splits[i][1];
     while (cdfs.length <= j)
-      cdfs.push([]);
-    cdfs[j].push({'x': x, 'y': row[i]});
+      cdfs.push({'xy': []});
+    cdfs[j].xy.push({'x': x, 'y': row[i]});
   }
   return cdfs;
 }
@@ -75,21 +75,21 @@ Autoencoder.prototype.getPdfs = function(row, points) {
   var pdfs = [];
 
   for (var j = 0; j < row.length; j++) {
-    pdfs.push([]);
+    pdfs.push({'xy': []});
     // console.log(cdfs[j]);
     for (var p = 0; p < points; p++) {
-      var x = cdfs[j][0].x + (cdfs[j][cdfs[j].length-1].x - cdfs[j][0].x) * p / (points - 1);
-      var i = p / (points - 1) * (cdfs[j].length); // todo: assumes even spacing
+      var x = cdfs[j].xy[0].x + (cdfs[j].xy[cdfs[j].xy.length-1].x - cdfs[j].xy[0].x) * p / (points - 1);
+      var i = p / (points - 1) * (cdfs[j].xy.length); // todo: assumes even spacing
       var y = 0.0;
 
-      for (var i2 = 0; i2 < cdfs[j].length; i2++) {
-	var d = cdfs[j][i2].y;
-	if (i2 > 0) d -= cdfs[j][i2-1].y;
+      for (var i2 = 0; i2 < cdfs[j].xy.length; i2++) {
+	var d = cdfs[j].xy[i2].y;
+	if (i2 > 0) d -= cdfs[j].xy[i2-1].y;
 	var s = 1.0 / (1 + Math.exp(i2 - i));
 	y += d * s * (1 - s);
 	// console.log(i2 + ' ' + d + ' ' + s);
       }
-      pdfs[j].push({'x': x, 'y': y});
+      pdfs[j].xy.push({'x': x, 'y': y});
     }
   }
   return pdfs;
