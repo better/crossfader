@@ -6,6 +6,7 @@ import theano
 import theano.tensor as T
 from theano.tensor.nnet import sigmoid
 import pylab
+import time
 
 def floatX(x):
     return numpy.asarray(x, dtype=theano.config.floatX)
@@ -48,7 +49,7 @@ def get_row(headers, K, data_row, splits, headers_keep=None):
     return V_row, M_row, Q_row
 
 
-def build_matrices(headers, data, D, K, splits, batch_size=100):
+def build_matrices(headers, data, D, K, splits, batch_size=200):
     V = numpy.zeros((D, K), dtype=theano.config.floatX)
     M = numpy.zeros((D, K), dtype=theano.config.floatX)
     Q = numpy.zeros((D, K), dtype=theano.config.floatX)
@@ -69,10 +70,8 @@ def W_values(n_in, n_out):
         size=(n_in, n_out))
 
 
-def get_parameters(K):
+def get_parameters(K, n_hidden_layers=4, n_hidden_units=128):
     # Train an autoencoder to reconstruct the rows of the V matrices
-    n_hidden_layers = 2
-    n_hidden_units = 64
     Ws, bs = [], []
     for l in xrange(n_hidden_layers + 1):
         n_in, n_out = n_hidden_units, n_hidden_units
@@ -106,9 +105,9 @@ def get_model(Ws, bs, dropout=False):
                 h = h * mask * 2
 
     output = sigmoid(h)
-    
     LL = v * T.log(output) + (1 - v) * T.log(1 - output)
-    loss = -(q * LL).sum() / q.sum()
+    # loss = -(q * LL).sum() / q.sum()
+    loss = -((1 - m) * LL).sum() / (1 - m).sum()
 
     return v, m, q, output, loss
 
@@ -128,9 +127,10 @@ def nesterov_updates(loss, all_params, learn_rate, momentum, weight_decay):
 
 
 def get_train_f(Ws, bs):
-    v, m, q, output, loss = get_model(Ws, bs, dropout=True)
-    updates = nesterov_updates(loss, Ws + bs, 1e-1, 0.9, 1e-4)
-    return theano.function([v, m, q], loss, updates=updates)
+    learning_rate = T.scalar('learning rate')
+    v, m, q, output, loss = get_model(Ws, bs, dropout=False)
+    updates = nesterov_updates(loss, Ws + bs, learning_rate, 0.9, 1e-6)
+    return theano.function([v, m, q, learning_rate], loss, updates=updates)
 
 
 def get_pred_f(Ws, bs):
@@ -138,23 +138,24 @@ def get_pred_f(Ws, bs):
     return theano.function([v, m, q], output)
 
 
-def train(headers, data, header_plot_x=None, header_plot_y=None):
+def train(headers, data, header_plot_x=None, header_plot_y=None, n_hidden_layers=4, n_hidden_units=128):
     D = len(data)
-    K = 300 # Random splits
-    bins = K / len(headers)
+    bins = 40
     K = bins * len(headers)
 
     print D, 'data points', K, 'random splits', bins, 'bins', K, 'features'
 
     splits = get_splits(headers, data, bins)
 
-    Ws, bs = get_parameters(K)
+    Ws, bs = get_parameters(K, n_hidden_layers, n_hidden_units)
     train_f = get_train_f(Ws, bs)
     pred_f = get_pred_f(Ws, bs)
 
+    t0 = time.time()
     for iter in xrange(1000000):
+        learning_rate = 1.0 * math.exp(-(time.time() - t0) / 3600)
         V, M, Q = build_matrices(headers, data, D, K, splits)
-        print train_f(V, M, Q)
+        print train_f(V, M, Q, learning_rate), learning_rate
 
         if (iter + 1) % 10 == 0:
             yield {'K': K, 'bins': bins, 'splits': splits, 'headers': headers,
