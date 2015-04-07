@@ -75,21 +75,27 @@ Autoencoder.prototype.getPdfs = function(row, points) {
   var pdfs = [];
 
   for (var j = 0; j < row.length; j++) {
-    pdfs.push({'xy': []});
+    pdfs.push({'xy': [], 'xyQuartile': []});
     // console.log(cdfs[j]);
     for (var p = 0; p < points; p++) {
       var x = cdfs[j].xy[0].x + (cdfs[j].xy[cdfs[j].xy.length-1].x - cdfs[j].xy[0].x) * p / (points - 1);
       var i = p / (points - 1) * (cdfs[j].xy.length); // todo: assumes even spacing
       var y = 0.0;
+      var yCdf = 0.0;
 
       for (var i2 = 0; i2 < cdfs[j].xy.length; i2++) {
 	var d = cdfs[j].xy[i2].y;
 	if (i2 > 0) d -= cdfs[j].xy[i2-1].y;
 	var s = 1.0 / (1 + Math.exp(i2 - i));
 	y += d * s * (1 - s);
-	// console.log(i2 + ' ' + d + ' ' + s);
+	yCdf += d * s;
       }
       pdfs[j].xy.push({'x': x, 'y': y});
+      
+      // TODO: extrapolate the cdf from i
+      if (yCdf > 0.25 && yCdf < 0.75) {
+	pdfs[j].xyQuartile.push({'x': x, 'y': y});
+      }
     }
   }
   return pdfs;

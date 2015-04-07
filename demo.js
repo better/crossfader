@@ -41,7 +41,7 @@ function redraw(charts, update, index, newValue) {
     if (update)
       charts[j].update(curves[j].xy);
     else
-      charts[j].updateHypothetical(curves[j].xy);
+      charts[j].updateHypothetical(curves[j]);
   }
 }
 
@@ -75,6 +75,10 @@ function Chart(element, redraw) {
     .attr('stroke', 'red')
     .attr('stroke-weight', '5')
     .attr('fill', 'none');
+
+  this.hypotheticalPathQuartiles = svg.append('path')
+    .attr('fill', 'red')
+    .attr('fill-opacity', '0.1');
 
   var focus = svg.append("g")
       .attr("class", "focus")
@@ -148,5 +152,12 @@ Chart.prototype.updateHypothetical = function(data) {
       .x(function(d) { return chart.x(d.x); })
       .y(function(d) { return chart.y(d.y); });
 
-  this.hypotheticalPath.attr('d', lineFunction(data));  
+  this.hypotheticalPath.attr('d', lineFunction(data.xy));
+
+  if (data.xyQuartile.length > 0) {
+    data.xyQuartile.push({'x': data.xyQuartile[data.xyQuartile.length-1].x, 'y': 0});
+    data.xyQuartile.push({'x': data.xyQuartile[0].x, 'y': 0});
+
+    this.hypotheticalPathQuartiles.attr('d', lineFunction(data.xyQuartile));
+  }
 }
