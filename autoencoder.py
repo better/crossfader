@@ -101,7 +101,7 @@ def get_model(Ws, bs, dropout=False):
     
     # Normalize layer 0
     h *= (k.dimshuffle(0, 'x') + 1)** -0.5
-    
+
     for l in xrange(len(Ws)):
         h = T.dot(h, Ws[l]) + bs[l]
 
@@ -145,7 +145,7 @@ def get_pred_f(Ws, bs):
     return theano.function([v, m, q, k], output)
 
 
-def train(headers, data, header_plot_x=None, header_plot_y=None, n_hidden_layers=4, n_hidden_units=128, bins=40):
+def train(headers, data, n_hidden_layers=4, n_hidden_units=128, bins=40):
     D = len(data)
     K = bins * len(headers)
 
@@ -167,34 +167,6 @@ def train(headers, data, header_plot_x=None, header_plot_y=None, n_hidden_layers
             yield {'K': K, 'bins': bins, 'splits': splits, 'headers': headers,
                    'Ws': [W.get_value().tolist() for W in Ws],
                    'bs': [b.get_value().tolist() for b in bs]}
-        
-        if (iter + 1) % 20 == 0 and header_plot_x and header_plot_y:
-            series = []
-            legends = []
-            cm = pylab.get_cmap('cool')
-            pylab.clf()
-            
-            for j, x_split in splits:
-                if headers[j] == header_plot_x:
-                    data_row = {headers[j]: x_split}
-                    V, M, Q = [x.reshape((1, K)) for x in get_row(headers, K, data_row, splits)]
-
-                    P = pred_f(V, M, Q, k)
-                    
-                    xs = []
-                    ys = []
-                    for i, split in enumerate(splits):
-                        j2, x2_split = split
-                        if headers[j2] == header_plot_y:
-                            xs.append(x2_split)
-                            ys.append(P[0][i])
-
-                    pylab.plot(xs, ys, color=cm(1.0 * len(legends) / (bins - 1)))
-                    legends += ['FICO %3d' % x_split]
-
-            # pylab.plot(*series)
-            # pylab.legend(legends)
-            pylab.savefig('interest_rates.png')
 
 
 if __name__ == '__main__':
