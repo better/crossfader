@@ -96,8 +96,8 @@ function Chart(element, redraw) {
     .attr("pointer-events", "all")
     .attr("width", this.width)
     .attr("height", this.height)
-    .on("mouseover", function() { focus.style("display", null); })
-    .on("mouseout", function() { focus.style("display", "none"); })
+    .on("mouseover", function() { if (!focus.locked) focus.style("display", null); })
+    .on("mouseout", function() { if (!focus.locked) focus.style("display", "none"); })
     .on("mousemove", getEventHandler(false))
     .on("click", getEventHandler(true));
 
@@ -107,6 +107,11 @@ function Chart(element, redraw) {
 
   function getEventHandler(update) {
     return function() {
+      if (update)
+	focus.locked = true;
+      else if (focus.locked)
+	return;
+
       if (!chart.data)
 	return;
     
@@ -115,6 +120,7 @@ function Chart(element, redraw) {
       // TODO: linear interpolation
       focus.attr("transform", "translate(" + chart.x(x0) + "," + chart.y(0) + ")");
       focus.select("text").text(x0);
+
       
       chart.redraw(update, x0);
     }
