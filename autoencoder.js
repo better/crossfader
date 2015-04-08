@@ -24,7 +24,11 @@ Autoencoder.prototype.getOutput = function(row) {
     else if (row[j] > x)
       input.push(-1.0);
   }
-  var row = input;
+
+  // Normalize input
+  var k = input.map(Math.abs).reduce(function(a, b) { return a + b;}, 0);
+  var row = input.map(function(x) { return x * Math.pow(k+1, -0.5); });
+
   for (var layer = 0; layer < this.Ws.length; layer++) {
     // console.log(this.Ws[layer].length + ' * ' + this.Ws[layer][0].length);
     // Compute row * Ws[layer] + bs[layer]
