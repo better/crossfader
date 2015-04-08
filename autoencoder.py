@@ -125,7 +125,7 @@ def nesterov_updates(loss, all_params, learn_rate, momentum, weight_decay):
     for param_i, grad_i in zip(all_params, all_grads):
         # generate a momentum parameter
         mparam_i = theano.shared(numpy.array(param_i.get_value()*0.))
-        full_grad_i = grad_i + weight_decay * param_i
+        full_grad_i = grad_i + learn_rate * weight_decay * param_i
         v = momentum * mparam_i - learn_rate * full_grad_i
         w = param_i + momentum * v - learn_rate * full_grad_i
         updates.append((param_i, w))
