@@ -138,9 +138,8 @@ def get_pred_f(Ws, bs):
     return theano.function([v, m, q], output)
 
 
-def train(headers, data, header_plot_x=None, header_plot_y=None, n_hidden_layers=4, n_hidden_units=128):
+def train(headers, data, header_plot_x=None, header_plot_y=None, n_hidden_layers=4, n_hidden_units=128, bins=40):
     D = len(data)
-    bins = 40
     K = bins * len(headers)
 
     print D, 'data points', K, 'random splits', bins, 'bins', K, 'features'
