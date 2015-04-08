@@ -17,11 +17,13 @@ parser.add_argument('--n-hidden-layers', type=int, default=3,
                     help='Number of hidden layers')
 parser.add_argument('--n-hidden-units', type=int, default=64,
                     help='Number of hidden units in each layer')
+parser.add_argument('--delimiter', default=',',
+                    help='Delimiter for input')
 
 args = parser.parse_args()
 
 with open(args.input, 'rb') as csvfile:
-    r = csv.reader(csvfile)
+    r = csv.reader(csvfile, delimiter=args.delimiter)
     headers = r.next()
     data = []
     for row in r:
