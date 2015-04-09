@@ -7,22 +7,30 @@ import theano.tensor as T
 from theano.tensor.nnet import sigmoid
 import pylab
 import time
+import bisect
 
 def floatX(x):
     return numpy.asarray(x, dtype=theano.config.floatX)
 
 srng = theano.tensor.shared_randomstreams.RandomStreams()
 
-def get_splits(headers, data, bins):
+def get_splits(headers, data, bins, linear=False):
     values = [[v[header] for v in data if header in v] for header in headers]
 
     splits = []
     for j in xrange(len(headers)):
         lo, hi = numpy.percentile(values[j], 1.0), numpy.percentile(values[j], 99.0)
-        print headers[j], lo, hi
-        for bin in xrange(bins):
-            x_split = lo + (bin + 1) * (hi - lo) * 1. / bins
-            splits.append((j, x_split))
+        print '%100s %11.2f %11.2f %5.2f%%' % (headers[j], lo, hi, 100. * len(values[j]) / len(data))
+        j_splits = []
+        if linear:
+            for bin in xrange(bins):
+                j_splits.append(lo + (bin + 1) * (hi - lo) * 1. / bins)
+        else:
+            for bin in xrange(bins):
+                j_splits.append(numpy.percentile(values[j], 100.0 * (bin+1) / (bins+1)))
+
+        splits += [(j, x_split) for x_split in j_splits]
+            
     return splits
 
         
@@ -157,11 +165,33 @@ def train(headers, data, n_hidden_layers=4, n_hidden_units=128, bins=40):
     train_f = get_train_f(Ws, bs)
     pred_f = get_pred_f(Ws, bs)
 
-    t0 = time.time()
+    learning_rate = 1.0
+    n_iters_patience = 1000
+    avg_decay = 1.0 - 1.0 / n_iters_patience
+    loss_sum = 0.0
+    weight_sum = 0.0
+    best_loss_smoothed = float('inf')
+    best_iter = 0
+    
     for iter in xrange(1000000):
-        learning_rate = 1.0 * math.exp(-(time.time() - t0) / 3600)
         V, M, Q, k = build_matrices(headers, data, D, K, splits)
-        print train_f(V, M, Q, k, learning_rate), learning_rate
+        loss = train_f(V, M, Q, k, learning_rate)
+        loss_sum = loss_sum * avg_decay + loss
+        weight_sum = weight_sum * avg_decay + 1.0
+
+        loss_smoothed = loss_sum / weight_sum
+        print '%12.9f %12.9f %5d %5d %12.9f' % (loss_smoothed, loss, iter, iter-best_iter, learning_rate)
+
+        if loss_smoothed < best_loss_smoothed:
+            best_iter = iter
+            best_loss_smoothed = loss_smoothed
+
+        if iter > best_iter + n_iters_patience:
+            print 'lower learning rate'
+            learning_rate *= 0.3
+            best_loss_smoothed = float('inf')
+            if learning_rate < 1e-4:
+                break
 
         if (iter + 1) % 10 == 0:
             yield {'K': K, 'bins': bins, 'splits': splits, 'headers': headers,
