@@ -38,10 +38,12 @@ function redraw(charts, update, index, newValue) {
   var curves = model.getPdfs(row);
 
   for (var j = 0; j < row.length; j++) {
-    if (update)
+    if (update) {
       charts[j].update(curves[j].xy);
-    else
+      charts[j].updateHypothetical(null);
+    } else {
       charts[j].updateHypothetical(curves[j]);
+    }
   }
 }
 
@@ -72,12 +74,12 @@ function Chart(element, redraw) {
     .attr('fill', 'none');
 
   this.hypotheticalPath = svg.append('path')
-    .attr('stroke', 'red')
+    .attr('stroke', 'green')
     .attr('stroke-weight', '5')
     .attr('fill', 'none');
 
   this.hypotheticalPathQuartiles = svg.append('path')
-    .attr('fill', 'red')
+    .attr('fill', 'green')
     .attr('fill-opacity', '0.1');
 
   var focus = svg.append("g")
@@ -96,34 +98,48 @@ function Chart(element, redraw) {
     .attr("pointer-events", "all")
     .attr("width", this.width)
     .attr("height", this.height)
-    .on("mouseover", function() { if (!focus.locked) focus.style("display", null); })
-    .on("mouseout", function() { if (!focus.locked) focus.style("display", "none"); })
-    .on("mousemove", getEventHandler(false))
-    .on("click", getEventHandler(true));
+    .on("mouseover", move)
+    .on("mouseout", out)
+    .on("mousemove", move)
+    .on("click", click)
 
   var bisectData = d3.bisector(function(d) { return d.x; }).left;
 
   var chart = this;
 
-  function getEventHandler(update) {
-    return function() {
-      if (update)
-	focus.locked = true;
-      else if (focus.locked)
-	return;
+  function click() {
+    focus.locked = true;
 
-      if (!chart.data)
-	return;
+    var x0 = chart.x.invert(d3.mouse(this)[0]);
     
-      var x0 = chart.x.invert(d3.mouse(this)[0]);
-      
-      // TODO: linear interpolation
-      focus.attr("transform", "translate(" + chart.x(x0) + "," + chart.y(0) + ")");
-      focus.select("text").text(x0);
+    focus.attr("transform", "translate(" + chart.x(x0) + "," + chart.y(0) + ")");
+    focus.select("text").text(x0);
+    
+    chart.redraw(true, x0);
+  }
 
+  function move() {
+    if (!chart.data)
+      return;
+
+    if (focus.locked)
+      return;
+
+    focus.style("display", null);
+    
+    var x0 = chart.x.invert(d3.mouse(this)[0]);
       
-      chart.redraw(update, x0);
-    }
+    focus.attr("transform", "translate(" + chart.x(x0) + "," + chart.y(0) + ")");
+    focus.select("text").text(x0);
+    
+    chart.redraw(false, x0);
+  }
+
+  function out() {
+    if (!focus.locked)
+      focus.style("display", 'none');
+
+    chart.redraw(true, null);
   }
 }
 
@@ -153,6 +169,11 @@ Chart.prototype.update = function(data) {
 }
 
 Chart.prototype.updateHypothetical = function(data) {
+  if (data == null) {
+    this.hypotheticalPath.attr('display', 'none');
+    this.hypotheticalPathQuartiles.attr('display', 'none');
+    return;
+  }
   var chart = this;
   var lineFunction = d3.svg.line()
       .x(function(d) { return chart.x(d.x); })
@@ -160,10 +181,13 @@ Chart.prototype.updateHypothetical = function(data) {
 
   this.hypotheticalPath.attr('d', lineFunction(data.xy));
 
-  if (data.xyQuartile.length > 0) {
+  if (data.xyQuartile && data.xyQuartile.length > 0) {
     data.xyQuartile.push({'x': data.xyQuartile[data.xyQuartile.length-1].x, 'y': 0});
     data.xyQuartile.push({'x': data.xyQuartile[0].x, 'y': 0});
 
     this.hypotheticalPathQuartiles.attr('d', lineFunction(data.xyQuartile));
+    this.hypotheticalPathQuartiles.attr('display', null);
   }
+
+  this.hypotheticalPath.attr('display', null);
 }
