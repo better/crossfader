@@ -113,7 +113,7 @@ function Chart(element, redraw) {
     var x0 = chart.x.invert(d3.mouse(this)[0]);
     
     focus.attr("transform", "translate(" + chart.x(x0) + "," + chart.y(0) + ")");
-    focus.select("text").text(x0);
+    focus.select("text").text(x0.toPrecision(4));
     
     chart.redraw(true, x0);
   }
@@ -130,7 +130,7 @@ function Chart(element, redraw) {
     var x0 = chart.x.invert(d3.mouse(this)[0]);
       
     focus.attr("transform", "translate(" + chart.x(x0) + "," + chart.y(0) + ")");
-    focus.select("text").text(x0);
+    focus.select("text").text(x0.toPrecision(4));
     
     chart.redraw(false, x0);
   }
