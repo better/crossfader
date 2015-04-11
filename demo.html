@@ -44,7 +44,12 @@ body {
     </style>
   </head>
   <body>
-    <div class="container" ng-app="myApp" ng-controller="InputController">
+    <div class="container" ng-app="myApp" ng-controller="ChartsController">
+      <div class="row">
+	<div class="col-md-1" ng-repeat="example in examples">
+	  <h2><a href="" ng-click="setData(example)">{{ example }}</a></h2>
+	</div>
+      </div>
       <div class="row">
 	<div class="col-md-3" ng-repeat="header in headers">
 	  <h4 class="chart-header">{{ header }}</h4>

@@ -1,29 +1,36 @@
-var data = examples['wine'];
-var model = Autoencoder.deserialize(data);
-
 var app = angular.module("myApp",[]);
-app.controller('InputController', function($scope){
-  $scope.headers = model.headers.map(function(x) { return x.replace(/_/g, ' '); });
-  $scope.charts = [];
-});
+app.controller('ChartsController', ChartsController);
+
+function ChartsController($scope) {
+  $scope.headers = [];
+  $scope.model = [];
+  $scope.examples = Object.keys(examples);
+
+  $scope.setData = function(example) {
+    $scope.charts = [];
+    $scope.headers = examples[example].headers;
+    var data = examples[example];
+    $scope.model = Autoencoder.deserialize(data);    
+  };
+}
 
 app.directive("renderChart",function(){
   return function($scope, element, attrs){
     var j = $scope.$index;
     var getUpdateFn = function(index) {
-      return function(update, newValue) { redraw($scope.charts, update, index, newValue); };
+      return function(update, newValue) { redraw($scope.model, $scope.charts, update, index, newValue); };
     }
     var chart = new Chart(element, getUpdateFn(j));
 
     $scope.charts.push(chart);
     
     if ($scope.charts.length == $scope.headers.length) {
-      redraw($scope.charts, true);
+      redraw($scope.model, $scope.charts, true);
     }
   }
 });
 
-function redraw(charts, update, index, newValue) {
+function redraw(model, charts, update, index, newValue) {
   if (update && newValue != undefined)
     charts[index].fixedValue = newValue;
 
