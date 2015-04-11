@@ -5,7 +5,6 @@ import json
 import theano
 import theano.tensor as T
 from theano.tensor.nnet import sigmoid
-import pylab
 import time
 import bisect
 
