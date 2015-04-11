@@ -34,7 +34,7 @@ num_header_js = []
 for j, header in enumerate(headers):
     unique = set()
     for row in data:
-        if args.zero and row[j] == '':
+        if row[j] == '':
             continue
         try:
             float(row[j])
@@ -42,9 +42,8 @@ for j, header in enumerate(headers):
             break
         unique.add(row[j])
 
-    else:
-        if len(unique) > 1:
-            num_header_js.append(j)
+    if len(unique) > 1:
+        num_header_js.append(j)
     
 # Build matrix
 num_data = []
