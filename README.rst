@@ -33,6 +33,17 @@ The autoencoder has a series of hidden bottleneck layers (typically 2-5 layers w
 One way to think of it is that the autoencoder finds a low-dimensional manifold in the high-dimensional space.
 This manifold can be highly nonlinear due to the nonlinearities in the autoencoder.
 The autoencoder then essentially learns a projection from the high dimensional space onto the manifold and another projection back to the original space.
+The dimensionality reduction is effectively a way of getting around the `curse of dimensionality <http://en.wikipedia.org/wiki/Curse_of_dimensionality>`_ problem which often makes analysis of high-dimensional data hard.
 
 The autoencoder is trained using `Theano <http://deeplearning.net/software/theano/>`_ in Python.
 You can run it on a GPU although the speed improvements aren't drastic because of some bottlenecks.
+
+Limitations and future work
+---------------------------
+
+* Training the autoencoder is very slow. It can take a few hours for small data sets (with 10-100 features).
+* The training time grows with the number of features.
+* The training time should stay relatively constant with the size of the training data since it's using `stochastic gradient descent <http://en.wikipedia.org/wiki/Stochastic_gradient_descent>`_.
+* It only handles numerical attributes, although categorical should be pretty easy to add.
+* The model probably overfits quite a bit and should do proper cross-validation to measure this.
+* Similarly there is a bunch of hyperparameters that have to be tuned to your data set.
