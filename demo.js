@@ -1,6 +1,5 @@
-console.log(data);
+var data = examples['wine'];
 var model = Autoencoder.deserialize(data);
-console.log(model);
 
 var app = angular.module("myApp",[]);
 app.controller('InputController', function($scope){
