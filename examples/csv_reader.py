@@ -65,6 +65,10 @@ for row in data:
 
 keep_headers = [headers[j] for j in keep_header_js]
 
+# Compress json output
+json.encoder.FLOAT_REPR = lambda f: ("%.4f" % f)
+json.encoder.c_make_encoder = None
+
 print 'training'
 for model in autoencoder.train(keep_headers, keep_data,
                                bins=args.bins,

@@ -18,7 +18,8 @@ def get_splits(headers, data, bins, linear=False):
 
     splits = []
     for j in xrange(len(headers)):
-        lo, hi = numpy.percentile(values[j], 1.0), numpy.percentile(values[j], 99.0)
+        values_j_unique = sorted(set(values[j]))
+        lo, hi = numpy.percentile(values_j_unique, 1.0), numpy.percentile(values_j_unique, 99.0)
         print '%100s %11.2f %11.2f %5.2f%%' % (headers[j], lo, hi, 100. * len(values[j]) / len(data))
         j_splits = []
         if linear:
@@ -26,7 +27,7 @@ def get_splits(headers, data, bins, linear=False):
                 j_splits.append(lo + (bin + 1) * (hi - lo) * 1. / bins)
         else:
             for bin in xrange(bins):
-                j_splits.append(numpy.percentile(values[j], 100.0 * (bin+1) / (bins+1)))
+                j_splits.append(numpy.percentile(values_j_unique, 100.0 * (bin+1) / (bins+1)))
 
         splits += [(j, x_split) for x_split in j_splits]
             
