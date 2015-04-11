@@ -40,7 +40,7 @@ with open('examples/data/WEOOct2014all.csv', 'rU') as csvfile:
 
     for model in autoencoder.train(headers, data, bins=30,
                                    n_hidden_layers=5, n_hidden_units=64):
-        content = 'var data = %s;' % json.dumps(model)
+        content = 'examples[\'countries\'] = %s;' % json.dumps(model)
         f = open('examples/models/food.js', 'w')
         f.write(content)
         f.close()
