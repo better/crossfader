@@ -19,20 +19,24 @@ parser.add_argument('--n-hidden-units', type=int, default=64,
                     help='Number of hidden units in each layer')
 parser.add_argument('--delimiter', default=',',
                     help='Delimiter for input')
+parser.add_argument('--start-col', type=int, default=0,
+                    help='Column to start from')
+parser.add_argument('--header-threshold', type=float, default=0.0,
+                    help='Only include headers with at least this much data defined')
 
 args = parser.parse_args()
 
 with open(args.input, 'rb') as csvfile:
     r = csv.reader(csvfile, delimiter=args.delimiter)
-    headers = r.next()
+    headers = r.next()[args.start_col:]
     data = []
     for row in r:
-        data.append(row)
+        data.append(row[args.start_col:])
 
 # Figure out which headers are numerical
-num_header_js = []
+keep_header_js = []
 for j, header in enumerate(headers):
-    unique = set()
+    values = []
     for row in data:
         if row[j] == '':
             continue
@@ -40,29 +44,29 @@ for j, header in enumerate(headers):
             float(row[j])
         except ValueError:
             break
-        unique.add(row[j])
+        values.append(row[j])
 
-    if len(unique) > 1:
-        num_header_js.append(j)
+    if len(set(values)) > 1 and len(values) > len(data) * args.header_threshold:
+        keep_header_js.append(j)
     
 # Build matrix
-num_data = []
+keep_data = []
 for row in data:
-    num_row = {}
-    for j in num_header_js:
+    keep_row = {}
+    for j in keep_header_js:
         h = headers[j]
         if row[j] == '' and args.zero:
-            num_row[h] = 0.0
+            keep_row[h] = 0.0
         elif row[j]:
-            num_row[h] = float(row[j])
+            keep_row[h] = float(row[j])
 
-    if num_row:
-        num_data.append(num_row)
+    if keep_row:
+        keep_data.append(keep_row)
 
-num_headers = [headers[j] for j in num_header_js]
+keep_headers = [headers[j] for j in keep_header_js]
 
 print 'training'
-for model in autoencoder.train(num_headers, num_data,
+for model in autoencoder.train(keep_headers, keep_data,
                                bins=args.bins,
                                n_hidden_units=args.n_hidden_units,
                                n_hidden_layers=args.n_hidden_layers):
