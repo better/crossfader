@@ -17,19 +17,22 @@ What can it be used for?
 Demo Time
 ---------
 
-`Here's a demo <https://rawgit.com/erikbern/random-forests/master/demo.html>` trained on a bunch of different data sets.
+`Here's a demo <https://rawgit.com/erikbern/random-forests/master/demo.html>`_ trained on a bunch of different data sets.
+The demo is written in JS and uses pre-trained models.
 
 How does it work?
 -----------------
 
-It builds an `autoencoder <http://en.wikipedia.org/wiki/Autoencoder>` that learns to reconstruct missing data.
+It builds an `autoencoder <http://en.wikipedia.org/wiki/Autoencoder>`_ that learns to reconstruct missing data.
 
 To be able to work with any distributions, it reduces all inputs to a series of binary values.
 Every feature is encoded as a binary feature vector by constructing splits from the empirical distribution of the training data.
-The predicted probabilities for each split then gives the `CDF <http://en.wikipedia.org/wiki/Cumulative_distribution_function>` directly.
+The predicted probabilities for each split then gives the `CDF <http://en.wikipedia.org/wiki/Cumulative_distribution_function>`_ directly.
 
 The autoencoder has a series of hidden bottleneck layers (typically 2-5 layers with 20-100 units).
 One way to think of it is that the autoencoder finds a low-dimensional manifold in the high-dimensional space.
 This manifold can be highly nonlinear due to the nonlinearities in the autoencoder.
 The autoencoder then essentially learns a projection from the high dimensional space onto the manifold and another projection back to the original space.
 
+The autoencoder is trained using `Theano <http://deeplearning.net/software/theano/>`_ in Python.
+You can run it on a GPU although the speed improvements aren't drastic because of some bottlenecks.
