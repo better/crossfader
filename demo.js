@@ -4,7 +4,9 @@ app.controller('ChartsController', ChartsController);
 function ChartsController($scope) {
   $scope.headers = [];
   $scope.model = [];
-  $scope.examples = Object.keys(examples);
+  $scope.examples = Object.keys(examples).sort(function(a,b) {
+	  return examples[b].headers.length - examples[a].headers.length;
+      });
 
   $scope.setData = function(example) {
     $scope.charts = [];
