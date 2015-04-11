@@ -1,8 +1,8 @@
 import csv
-import autoencoder
-import json
 
 # Using data from http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/download.aspx
+
+writer = csv
 
 with open('examples/data/WEOOct2014all.csv', 'rU') as csvfile:
     reader = csv.reader(csvfile)
@@ -36,12 +36,12 @@ with open('examples/data/WEOOct2014all.csv', 'rU') as csvfile:
 
             data.append(data_row)
 
-    headers = list(headers)
+headers = list(headers)
 
-    for model in autoencoder.train(headers, data, bins=30,
-                                   n_hidden_layers=5, n_hidden_units=64):
-        content = 'examples[\'countries\'] = %s;' % json.dumps(model)
-        f = open('examples/models/countries.js', 'w')
-        f.write(content)
-        f.close()
+writer = csv.writer(open('examples/data/countries.csv', 'w'))
+writer.writerow(headers)
 
+for row in data:
+    if not any([header in row for header in headers]):
+        continue
+    writer.writerow([row.get(header, '') for header in headers])
