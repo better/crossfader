@@ -39,9 +39,9 @@ with open('examples/data/WEOOct2014all.csv', 'rU') as csvfile:
     headers = list(headers)
 
     for model in autoencoder.train(headers, data, bins=30,
-                                   n_hidden_layers=3, n_hidden_units=32):
+                                   n_hidden_layers=5, n_hidden_units=64):
         content = 'var data = %s;' % json.dumps(model)
-        f = open('models/weo.js', 'w')
+        f = open('examples/models/food.js', 'w')
         f.write(content)
         f.close()
 
