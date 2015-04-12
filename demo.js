@@ -47,10 +47,10 @@ function redraw(model, charts, update, index, newValue) {
 
   for (var j = 0; j < row.length; j++) {
     if (update) {
-      charts[j].update(curves[j].xy);
-      charts[j].updateHypothetical(null);
+      charts[j].update(curves[j]);
+      charts[j].render(null);
     } else {
-      charts[j].updateHypothetical(curves[j]);
+      charts[j].render(curves[j]);
     }
   }
 }
@@ -81,12 +81,12 @@ function Chart(element, redraw) {
     .attr('stroke-weight', '5')
     .attr('fill', 'none');
 
-  this.hypotheticalPath = svg.append('path')
+  this.hypoPath = svg.append('path')
     .attr('stroke', 'green')
     .attr('stroke-weight', '5')
     .attr('fill', 'none');
 
-  this.hypotheticalPathQuartiles = svg.append('path')
+  this.hypoPathQuartiles = svg.append('path')
     .attr('fill', 'green')
     .attr('fill-opacity', '0.1');
 
@@ -153,13 +153,20 @@ function Chart(element, redraw) {
 
 Chart.prototype.update = function(data) {
   this.data = data;
-  
+}
+
+Chart.prototype.render = function(hypoData) {  
   this.x = d3.scale.linear()
-    .domain(d3.extent(data, function(d) { return d.x; }))
+    .domain(d3.extent(this.data.xy, function(d) { return d.x; }))
     .range([0, this.width]);
 
+  var getY = function(d) { return d.y };
+  var max = d3.max(this.data.xy, getY);
+  if (hypoData)
+      max = Math.max(max, d3.max(hypoData.xy, getY));
+
   this.y = d3.scale.linear()
-    .domain([0, 2.0 * d3.max(data, function(d) { return d.y; })])
+    .domain([0, max])
     .range([this.height - this.margin.bottom, 0]);
 
   var xAxis = d3.svg.axis()
@@ -173,29 +180,22 @@ Chart.prototype.update = function(data) {
       .x(function(d) { return chart.x(d.x); })
       .y(function(d) { return chart.y(d.y); });
 
-  this.path.attr('d', lineFunction(this.data))
-}
+  this.path.attr('d', lineFunction(this.data.xy));
 
-Chart.prototype.updateHypothetical = function(data) {
-  if (data == null) {
-    this.hypotheticalPath.attr('display', 'none');
-    this.hypotheticalPathQuartiles.attr('display', 'none');
-    return;
+  if (hypoData == null) {
+    this.hypoPath.attr('display', 'none');
+    this.hypoPathQuartiles.attr('display', 'none');
+
+  } else {
+    this.hypoPath.attr('d', lineFunction(hypoData.xy));
+    this.hypoPath.attr('display', null);
+
+    if (hypoData.xyQuartile && hypoData.xyQuartile.length > 0) {
+      hypoData.xyQuartile.push({'x': hypoData.xyQuartile[hypoData.xyQuartile.length-1].x, 'y': 0});
+      hypoData.xyQuartile.push({'x': hypoData.xyQuartile[0].x, 'y': 0});
+
+      this.hypoPathQuartiles.attr('d', lineFunction(hypoData.xyQuartile));
+      this.hypoPathQuartiles.attr('display', null);
+    }
   }
-  var chart = this;
-  var lineFunction = d3.svg.line()
-      .x(function(d) { return chart.x(d.x); })
-      .y(function(d) { return chart.y(d.y); });
-
-  this.hypotheticalPath.attr('d', lineFunction(data.xy));
-
-  if (data.xyQuartile && data.xyQuartile.length > 0) {
-    data.xyQuartile.push({'x': data.xyQuartile[data.xyQuartile.length-1].x, 'y': 0});
-    data.xyQuartile.push({'x': data.xyQuartile[0].x, 'y': 0});
-
-    this.hypotheticalPathQuartiles.attr('d', lineFunction(data.xyQuartile));
-    this.hypotheticalPathQuartiles.attr('display', null);
-  }
-
-  this.hypotheticalPath.attr('display', null);
 }
