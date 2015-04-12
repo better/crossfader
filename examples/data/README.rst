@@ -4,26 +4,26 @@ car
 ---
 
 * 15tstcar-2014-11-13.csv
-* .. _Source: http://www.epa.gov/otaq/tcldata.htm
+* http://www.epa.gov/otaq/tcldata.htm
 * Note the weird semicolon delimiter.
 
 wine
 ----
 
 * winequality-white.csv
-* .. _Source: https://archive.ics.uci.edu/ml/datasets/Wine+Quality
+* https://archive.ics.uci.edu/ml/datasets/Wine+Quality
 
 food
 ----
 
 * sr26_food_db.csv
-* .. _Source: http://www.ars.usda.gov/Services/docs.htm?docid=23634
+* http://www.ars.usda.gov/Services/docs.htm?docid=23634
 
 countries
 ---------
 
 * WEOOct2014all.csv
-* .. _Source: http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/download.aspx
+* http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/download.aspx
 * The source file is not the training data.
 * You need to run the script "countries.py" to build the "countries.csv" dataset.
 
