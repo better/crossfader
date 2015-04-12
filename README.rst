@@ -1,3 +1,6 @@
+.. figure:: https://rawgit.com/bettermg/crossfader/master/demo.png
+   :align: center
+
 What is this?
 -------------
 

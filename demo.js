@@ -159,7 +159,7 @@ Chart.prototype.update = function(data) {
     .range([0, this.width]);
 
   this.y = d3.scale.linear()
-    .domain([0, d3.max(data, function(d) { return d.y; })])
+    .domain([0, 2.0 * d3.max(data, function(d) { return d.y; })])
     .range([this.height - this.margin.bottom, 0]);
 
   var xAxis = d3.svg.axis()
