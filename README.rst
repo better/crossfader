@@ -63,3 +63,8 @@ Limitations and future work
 * It only handles numerical attributes, although categorical should be pretty easy to add.
 * The model probably overfits quite a bit and should do proper cross-validation to measure this.
 * Similarly there is a bunch of hyperparameters that have to be tuned to your data set.
+
+License
+-------
+
+Released under the Apache 2.0 license.
