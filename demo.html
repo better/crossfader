@@ -16,10 +16,6 @@
     <script src="examples/models/stocks.js"></script>
     <script src="demo.js"></script>
     <style>
-body {
-  font: 10px sans-serif;
-}
-
 .bar rect {
   fill: steelblue;
   shape-rendering: crispEdges;
@@ -57,6 +53,22 @@ body {
 	  <div class="chart" render-chart></div>
 	</div>
       </div>
+      <h2>What is this?</h2>
+      <ul>
+	<li/>This lets you visualize marginal distributions of a complex joint distribution.
+	<li/>Click on any of the data sets above to visualize it.
+	<li/>The black lines are the marginal distribution <i>P(x<sub>i</sub>)</i> of each parameter <i>i</i>.
+	<li/>If you hold your mouse over chart <i>j</i>, it will compute the marginal distributions <i>P(x<sub>i</sub> | x<sub>j</sub>)</i> in green.
+	<li/>The shaded area under the green curve represent the 50% confidence interval around the median.
+	<li/>Click on any parameter to fix it to a certain value so you can compute <i>P(x<sub>i</sub> | x<sub>j</sub>, x<sub>k</sub>, ...)</i> etc.
+      </ul>
+      <h2>Counterintuitive stuff</h2>
+      <ul>
+	<li>Why doesn't it render <i>P(x<sub>i</sub> | x<sub>i</sub>)</i> as single point? (or a <a href="http://en.wikipedia.org/wiki/Dirac_delta_function">Dirac delta</a>). Because the projection to the low dimensional manifold is lossy and not invertible.
+	<li/>You can think of it as computing the marginal distribution of human attributes conditional on the human height being 2.4m. In that case there's so few examples it's better to look at people who are slightly less tall.
+	<li/>Why doesn't the 50% confidence interval of <i>P(x<sub>i</sub>)</i> always include the point <i>x<sub>i</sub></i>? Same reason as above.
+	<li/>Why are there negative probabilities sometimes? Because the predicted CDF ends up being decreasing. This probably just means training wasn't long enough.
+	<li/>The PDF is computed from the CDF by thinking of the split points as step functions. To make it more visually pleasing we smooth them by replacing them with sigmoids instead.
     </div>
   </body>
 </html>
