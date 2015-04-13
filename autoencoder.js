@@ -42,7 +42,9 @@ Autoencoder.prototype.getOutput = function(row) {
   }
 
   // Normalize input
-  var k = input.map(Math.abs).reduce(function(a, b) { return a + b;}, 0);
+  var k = 0;
+  for (var j = 0; j < row.length; j++)
+    k += row[j] != undefined ? 1 : 0;
   var row = input.map(function(x) { return x * Math.pow(k+1, -0.5); });
 
   for (var layer = 0; layer < this.Ws.length; layer++) {
