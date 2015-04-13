@@ -19,6 +19,13 @@ Autoencoder = function(headers, splits, Ws, bs) {
   this.splits = splits;
   this.Ws = Ws;
   this.bs = bs;
+  this.splitsByJ = [];
+  for (var i = 0; i < this.splits.length; i++) {
+    var j = this.splits[i][0];
+    var x = this.splits[i][1];
+    while (this.splitsByJ.length <= j) this.splitsByJ.push([]);
+    this.splitsByJ[j].push(x);
+  }
 }
 
 Autoencoder.deserialize = function(data) {
@@ -30,15 +37,19 @@ Autoencoder.deserialize = function(data) {
 
 Autoencoder.prototype.getOutput = function(row) {
   var input = [];
-  for (var i = 0; i < this.splits.length; i++) {
-    var j = this.splits[i][0];
-    var x = this.splits[i][1];
-    if (row[j] == undefined)
-      input.push(0.0);
-    else if (row[j] < x)
-      input.push(1.0);
-    else if (row[j] > x)
-      input.push(-1.0);
+  for (var j = 0; j < this.splitsByJ.length; j++) {
+    // Instead of encoding it as a -1 or +1 input, we smooth it using a tanh representation
+    // See description in getPdfs, it's the same idea
+    var D = (this.splitsByJ[j][this.splitsByJ[j].length-1] - this.splitsByJ[j][0]) / this.splitsByJ[j].length;
+
+    for (var i = 0; i < this.splitsByJ[j].length; i++) {
+      var x = this.splitsByJ[j][i];
+      if (row[j] == undefined) {
+	input.push(0.0);
+      } else {
+	input.push(Math.tanh((x - row[j]) / D));
+      }
+    }
   }
 
   // Normalize input
@@ -101,7 +112,6 @@ Autoencoder.prototype.getPdfs = function(row, points) {
 
     var D = (cdfs[j].xy[cdfs[j].xy.length-1].x - cdfs[j].xy[0].x) / cdfs[j].xy.length;
 
-    // console.log(cdfs[j]);
     for (var p = 0; p < points; p++) {
       var x = cdfs[j].xy[0].x + (cdfs[j].xy[cdfs[j].xy.length-1].x - cdfs[j].xy[0].x) * p / (points - 1);
       var y = 0.0;
