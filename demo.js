@@ -171,6 +171,7 @@ Chart.prototype.render = function(hypoData) {
 
   var xAxis = d3.svg.axis()
       .scale(this.x)
+      .ticks(5)
       .orient("bottom");
 
   this.axis.call(xAxis);
