@@ -13,12 +13,6 @@ wine
 * `winequality-white.csv`
 * https://archive.ics.uci.edu/ml/datasets/Wine+Quality
 
-food
-----
-
-* `sr26_food_db.csv`
-* http://www.ars.usda.gov/Services/docs.htm?docid=23634
-
 countries
 ---------
 
