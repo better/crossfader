@@ -26,6 +26,16 @@ Autoencoder = function(headers, splits, Ws, bs) {
     while (this.splitsByJ.length <= j) this.splitsByJ.push([]);
     this.splitsByJ[j].push(x);
   }
+
+  this.Ds = []; // Smoothing factors
+  for (var j = 0; j < this.splitsByJ.length; j++) {
+    this.Ds.push([]);
+    for (var i = 0; i < this.splitsByJ[j].length; i++) {
+      var iLo = i > 0 ? i - 1 : i;
+      var iHi = i < this.splitsByJ[j].length - 1 ? i + 1 : i;
+      this.Ds[j].push((this.splitsByJ[j][iHi] - this.splitsByJ[j][iLo]) / (iHi - iLo));
+    }
+  }
 }
 
 Autoencoder.deserialize = function(data) {
@@ -38,12 +48,12 @@ Autoencoder.deserialize = function(data) {
 Autoencoder.prototype.getOutput = function(row) {
   var input = [];
   for (var j = 0; j < this.splitsByJ.length; j++) {
-    // Instead of encoding it as a -1 or +1 input, we smooth it using a tanh representation
-    // See description in getPdfs, it's the same idea
-    var D = (this.splitsByJ[j][this.splitsByJ[j].length-1] - this.splitsByJ[j][0]) / this.splitsByJ[j].length;
-
     for (var i = 0; i < this.splitsByJ[j].length; i++) {
       var x = this.splitsByJ[j][i];
+      // Instead of encoding it as a -1 or +1 input, we smooth it using a tanh representation
+      // See description in getPdfs, it's the same idea
+      var D = this.Ds[j][i];
+
       if (row[j] == undefined) {
 	input.push(0.0);
       } else {
@@ -110,14 +120,14 @@ Autoencoder.prototype.getPdfs = function(row, points) {
   for (var j = 0; j < row.length; j++) {
     pdfs.push({'xy': [], 'xyQuartile': []});
 
-    var D = (cdfs[j].xy[cdfs[j].xy.length-1].x - cdfs[j].xy[0].x) / cdfs[j].xy.length;
-
     for (var p = 0; p < points; p++) {
       var x = cdfs[j].xy[0].x + (cdfs[j].xy[cdfs[j].xy.length-1].x - cdfs[j].xy[0].x) * p / (points - 1);
       var y = 0.0;
       var yCdf = 0.0;
 
       for (var i = 0; i < cdfs[j].xy.length; i++) {
+	var D = this.Ds[j][i];
+
 	var xp = cdfs[j].xy[i].x;
 	var d = cdfs[j].xy[i].y;
 	if (i > 0) d -= cdfs[j].xy[i-1].y;
