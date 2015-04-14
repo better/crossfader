@@ -20,7 +20,7 @@ What can it be used for?
 Demo Time
 ---------
 
-`Here is a demo <https://rawgit.com/bettermg/crossfader/master/demo.html>`_ trained on a bunch of different data sets.
+`Here is a demo <https://rawgit.com/bettermg/crossfader/master/demo.html#wine>`_ trained on a bunch of different data sets.
 The demo is written in JS and uses pre-trained models.
 
 More background

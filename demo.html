@@ -40,10 +40,10 @@
     </style>
   </head>
   <body>
-    <div class="container" ng-app="myApp" ng-controller="ChartsController">
+    <div class="container" ng-app="myApp" ng-controller="ChartsController" data-ng-init="init()">
       <div class="row">
 	<div class="col-md-2" ng-repeat="example in examples">
-	  <h2><a href="" ng-click="setData(example)">{{ example }}</a></h2>
+	  <h2><a href="#{{ example }}" ng-click="setData(example)">{{ example }}</a></h2>
 	</div>
       </div>
       <div class="row">

@@ -12,8 +12,15 @@ function ChartsController($scope) {
     $scope.charts = [];
     $scope.headers = examples[example].headers;
     var data = examples[example];
-    $scope.model = Autoencoder.deserialize(data);    
+    $scope.model = Autoencoder.deserialize(data);
   };
+
+  $scope.init = function() {
+    var key = window.location.hash.substring(1);
+    if (key) {
+      $scope.setData(key);
+    }
+  }
 }
 
 app.directive("renderChart",function(){
