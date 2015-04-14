@@ -27,15 +27,19 @@ Autoencoder = function(headers, splits, Ws, bs) {
     this.splitsByJ[j].push(x);
   }
 
-  this.Ds = []; // Smoothing factors
+   // Smoothing factors. These are pretty arbitrary numbers, mainly picked because they seem to work
+  this.Ds = [];
   for (var j = 0; j < this.splitsByJ.length; j++) {
     this.Ds.push([]);
+    var oldD = (this.splitsByJ[j][this.splitsByJ[j].length - 1] - this.splitsByJ[j][0]) / this.splitsByJ[j].length,
+	eps = 0.1;
     for (var i = 0; i < this.splitsByJ[j].length; i++) {
       var iLo = i > 0 ? i - 1 : i;
       var iHi = i < this.splitsByJ[j].length - 1 ? i + 1 : i;
-      this.Ds[j].push((this.splitsByJ[j][iHi] - this.splitsByJ[j][iLo]) / (iHi - iLo));
+      this.Ds[j].push((this.splitsByJ[j][iHi] - this.splitsByJ[j][iLo]) / (iHi - iLo) + eps * oldD);
     }
   }
+  console.log(this.Ds);
 }
 
 Autoencoder.deserialize = function(data) {
