@@ -9,7 +9,7 @@ function ChartsController($scope) {
   $scope.examples = ['stocks', 'countries', 'wine', 'car'];
 
   $scope.setData = function(key) {
-    if (window.location.prototcol == 'file:')
+    if (window.location.protocol == 'file:')
       // We can't load a JS dynamically from local disk, so if it's local then load it from Github
       var url = 'https://rawgit.com/bettermg/crossfader/master/examples/models/' + key + '.js';
     else
