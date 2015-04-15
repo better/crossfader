@@ -27,7 +27,7 @@ Autoencoder = function(headers, splits, Ws, bs) {
     this.splitsByJ[j].push(x);
   }
 
-   // Smoothing factors. These are pretty arbitrary numbers, mainly picked because they seem to work
+  // Smoothing factors. These are pretty arbitrary numbers, mainly picked because they seem to work
   this.Ds = [];
   for (var j = 0; j < this.splitsByJ.length; j++) {
     this.Ds.push([]);
@@ -39,7 +39,6 @@ Autoencoder = function(headers, splits, Ws, bs) {
       this.Ds[j].push((this.splitsByJ[j][iHi] - this.splitsByJ[j][iLo]) / (iHi - iLo) + eps * oldD);
     }
   }
-  console.log(this.Ds);
 }
 
 Autoencoder.deserialize = function(data) {

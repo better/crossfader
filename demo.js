@@ -1,18 +1,29 @@
 var app = angular.module("myApp",[]);
 app.controller('ChartsController', ChartsController);
 
+var examples = {};
+
 function ChartsController($scope) {
   $scope.headers = [];
   $scope.model = [];
-  $scope.examples = Object.keys(examples).sort(function(a,b) {
-	  return examples[b].headers.length - examples[a].headers.length;
-      });
+  $scope.examples = ['stocks', 'countries', 'wine', 'car'];
 
-  $scope.setData = function(example) {
+  $scope.setData = function(key) {
+    // We can't load a JS dynamically from local disk, so if it's local then load it from Github
+    var url = (window.location.protocol == 'file:' ? 'https://rawgit.com/bettermg/crossfader/master/' : window.location) + 'examples/models/' + key + '.js';
+    if (examples[key])
+      $scope._setData(examples[key]);
+    else
+      $.getScript(url, function() {
+	      $scope._setData(examples[key]);
+	      $scope.$apply();
+	  });
+  }
+
+  $scope._setData = function(example) {
     $scope.charts = [];
-    $scope.headers = examples[example].headers;
-    var data = examples[example];
-    $scope.model = Autoencoder.deserialize(data);
+    $scope.model = Autoencoder.deserialize(example);
+    $scope.headers = example.headers;
   };
 
   $scope.init = function() {
