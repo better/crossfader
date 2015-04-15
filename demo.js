@@ -9,8 +9,13 @@ function ChartsController($scope) {
   $scope.examples = ['stocks', 'countries', 'wine', 'car'];
 
   $scope.setData = function(key) {
-    // We can't load a JS dynamically from local disk, so if it's local then load it from Github
-    var url = (window.location.protocol == 'file:' ? 'https://rawgit.com/bettermg/crossfader/master/' : window.location) + 'examples/models/' + key + '.js';
+    if (window.location.prototcol == 'file:')
+      // We can't load a JS dynamically from local disk, so if it's local then load it from Github
+      var url = 'https://rawgit.com/bettermg/crossfader/master/examples/models/' + key + '.js';
+    else
+      var url = window.location.href.split('demo.html')[0] + 'examples/models/' + key + '.js';
+    console.log('url: ' + url);
+
     if (examples[key])
       $scope._setData(examples[key]);
     else
