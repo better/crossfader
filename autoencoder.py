@@ -73,10 +73,11 @@ def get_row(headers, K, data_row, splits, headers_keep=None):
 
 
 def build_matrices(headers, data, D, K, splits, batch_size=200):
-    V = numpy.zeros((D, K), dtype=theano.config.floatX)
-    M = numpy.zeros((D, K), dtype=theano.config.floatX)
-    Q = numpy.zeros((D, K), dtype=theano.config.floatX)
-    k = numpy.zeros((D, ), dtype=theano.config.floatX)
+    batch_size = min(len(data), batch_size)
+    V = numpy.zeros((batch_size, K), dtype=theano.config.floatX)
+    M = numpy.zeros((batch_size, K), dtype=theano.config.floatX)
+    Q = numpy.zeros((batch_size, K), dtype=theano.config.floatX)
+    k = numpy.zeros((batch_size, ), dtype=theano.config.floatX)
 
     for i, data_row in enumerate(random.sample(data, batch_size)):
         # How many header should we remove
