@@ -38,7 +38,7 @@ keep_header_js = []
 for j, header in enumerate(headers):
     values = []
     for row in data:
-        if row[j] == '':
+        if j >= len(row) or row[j] == '':
             continue
         try:
             float(row[j])
@@ -55,9 +55,9 @@ for row in data:
     keep_row = {}
     for j in keep_header_js:
         h = headers[j]
-        if row[j] == '' and args.zero:
+        if j < len(row) and row[j] == '' and args.zero:
             keep_row[h] = 0.0
-        elif row[j]:
+        elif j < len(row) and row[j]:
             keep_row[h] = float(row[j])
 
     if keep_row:
