@@ -69,7 +69,7 @@ Autoencoder.prototype.getOutput = function(row) {
   var k = 0;
   for (var j = 0; j < row.length; j++)
     k += row[j] != undefined ? 1 : 0;
-  var row = input.map(function(x) { return x * Math.pow(k+1, -0.5); });
+  var row = input.map(function(x) { return x * (k > 0 ? Math.pow(k, -0.5) : 0.0); });
 
   for (var layer = 0; layer < this.Ws.length; layer++) {
     // console.log(this.Ws[layer].length + ' * ' + this.Ws[layer][0].length);
