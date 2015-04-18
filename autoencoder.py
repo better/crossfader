@@ -27,23 +27,30 @@ def floatX(x):
 
 srng = theano.tensor.shared_randomstreams.RandomStreams()
 
-def get_splits(headers, data, bins, linear=False):
+def get_splits(headers, data, bins, linear=False, headers_types={}):
     values = [[v[header] for v in data if header in v] for header in headers]
 
     splits = []
+    print headers_types
     for j in xrange(len(headers)):
-        values_j_unique = sorted(set(values[j]))
-        lo, hi = numpy.percentile(values_j_unique, 1.0), numpy.percentile(values_j_unique, 99.0)
-        print '%100s %11.2f %11.2f %5.2f%%' % (headers[j], lo, hi, 100. * len(values[j]) / len(data))
-        j_splits = []
-        if linear:
-            for bin in xrange(bins):
-                j_splits.append(lo + (bin + 1) * (hi - lo) * 1. / bins)
+        print j, headers[j], headers_types.get(headers[j])
+        if headers_types.get(headers[j], 'numerical') == 'numerical':
+            values_j_unique = sorted(set(values[j]))
+            lo, hi = numpy.percentile(values_j_unique, 1.0), numpy.percentile(values_j_unique, 99.0)
+            print '%100s %11.2f %11.2f %5.2f%%' % (headers[j], lo, hi, 100. * len(values[j]) / len(data))
+            j_splits = []
+            if linear:
+                for bin in xrange(bins):
+                    j_splits.append(('<', lo + (bin + 1) * (hi - lo) * 1. / bins))
+            else:
+                for bin in xrange(bins):
+                    j_splits.append(('<', numpy.percentile(values_j_unique, 100.0 * (bin+1) / (bins+1))))
         else:
-            for bin in xrange(bins):
-                j_splits.append(numpy.percentile(values_j_unique, 100.0 * (bin+1) / (bins+1)))
+            # categorical
+            j_splits = [('=', v) for v in set(values[j])]
 
-        splits += [(j, x_split) for x_split in j_splits]
+        print j_splits
+        splits += [(j, sign, x_split) for sign, x_split in j_splits]
             
     return splits
 
@@ -57,12 +64,14 @@ def get_row(headers, K, data_row, splits, headers_keep=None):
     Q_row = numpy.zeros(K, dtype=theano.config.floatX)
 
     for k, split in enumerate(splits):
-        j, x_split = split
+        j, sign, x_split = split
         if headers[j] not in data_row:
             M_row[k] = 1
             continue
         x = data_row[headers[j]]
-        if x < x_split:
+        if sign == '<' and x < x_split:
+            V_row[k] = 1
+        elif sign == '=' and x == x_split:
             V_row[k] = 1
 
         if headers_keep is not None:
@@ -72,7 +81,7 @@ def get_row(headers, K, data_row, splits, headers_keep=None):
     return V_row, M_row, Q_row
 
 
-def build_matrices(headers, data, D, K, splits, batch_size=200):
+def build_matrices(headers, data, K, splits, batch_size=200):
     batch_size = min(len(data), batch_size)
     V = numpy.zeros((batch_size, K), dtype=theano.config.floatX)
     M = numpy.zeros((batch_size, K), dtype=theano.config.floatX)
@@ -158,7 +167,7 @@ def nesterov_updates(loss, all_params, learn_rate, momentum, weight_decay):
 
 def get_train_f(Ws, bs):
     learning_rate = T.scalar('learning rate')
-    v, m, q, k, output, loss = get_model(Ws, bs, dropout=False)
+    v, m, q, k, output, loss = get_model(Ws, bs, dropout=True)
     updates = nesterov_updates(loss, Ws + bs, learning_rate, 0.9, 1e-6)
     return theano.function([v, m, q, k, learning_rate], loss, updates=updates)
 
@@ -168,20 +177,19 @@ def get_pred_f(Ws, bs):
     return theano.function([v, m, q, k], output)
 
 
-def train(headers, data, n_hidden_layers=4, n_hidden_units=128, bins=40):
-    D = len(data)
+def train(headers, data, n_hidden_layers=4, n_hidden_units=128, bins=40, headers_types={}):
     K = bins * len(headers)
 
-    print D, 'data points', K, 'random splits', bins, 'bins', K, 'features'
+    print len(data), 'data points', K, 'random splits', bins, 'bins', K, 'features'
 
-    splits = get_splits(headers, data, bins)
+    splits = get_splits(headers, data, bins, headers_types=headers_types)
 
     Ws, bs = get_parameters(K, n_hidden_layers, n_hidden_units)
     train_f = get_train_f(Ws, bs)
     pred_f = get_pred_f(Ws, bs)
 
     learning_rate = 1.0
-    n_iters_patience = 1000
+    n_iters_patience = 10000
     avg_decay = 1.0 - 1.0 / n_iters_patience
     loss_sum = 0.0
     weight_sum = 0.0
@@ -189,7 +197,7 @@ def train(headers, data, n_hidden_layers=4, n_hidden_units=128, bins=40):
     best_iter = 0
     
     for iter in xrange(1000000):
-        V, M, Q, k = build_matrices(headers, data, D, K, splits)
+        V, M, Q, k = build_matrices(headers, data, K, splits)
         loss = train_f(V, M, Q, k, learning_rate)
         loss_sum = loss_sum * avg_decay + loss
         weight_sum = weight_sum * avg_decay + 1.0
@@ -208,10 +216,11 @@ def train(headers, data, n_hidden_layers=4, n_hidden_units=128, bins=40):
             if learning_rate < 1e-4:
                 break
 
-        if (iter + 1) % 10 == 0:
+        if (iter + 1) % 100 == 0:
             yield {'K': K, 'bins': bins, 'splits': splits, 'headers': headers,
                    'Ws': [W.get_value().tolist() for W in Ws],
-                   'bs': [b.get_value().tolist() for b in bs]}
+                   'bs': [b.get_value().tolist() for b in bs],
+                   'headers_types': headers_types}
 
 
 if __name__ == '__main__':

@@ -33,37 +33,49 @@ with open(args.input, 'rb') as csvfile:
     for row in r:
         data.append(row[args.start_col:])
 
-# Figure out which headers are numerical
-keep_header_js = []
+# Figure out which headers are numerical/categorical
+keep_header_js = {}
 for j, header in enumerate(headers):
-    values = []
+    num_values = []
+    nnum_values = []
     for row in data:
         if j >= len(row) or row[j] == '':
             continue
         try:
             float(row[j])
+            num_values.append(row[j])
         except ValueError:
-            break
-        values.append(row[j])
+            nnum_values.append(row[j])
 
-    if len(set(values)) > 1 and len(values) > len(data) * args.header_threshold:
-        keep_header_js.append(j)
+    print header, len(num_values), len(nnum_values), len(set(num_values)), len(set(nnum_values))
+
+    if len(num_values) + len(nnum_values) < len(data) * args.header_threshold:
+        continue
+
+    if len(set(num_values + nnum_values)) < args.bins:
+        keep_header_js[j] = 'categorical'
+    elif len(set(num_values)) > 1:
+        keep_header_js[j] = 'numerical'
     
 # Build matrix
 keep_data = []
 for row in data:
     keep_row = {}
-    for j in keep_header_js:
+    for j, t in keep_header_js.iteritems():
         h = headers[j]
         if j < len(row) and row[j] == '' and args.zero:
             keep_row[h] = 0.0
-        elif j < len(row) and row[j]:
+        elif j < len(row) and row[j] and t =='numerical':
             keep_row[h] = float(row[j])
+        elif j < len(row) and row[j] and t =='categorical':
+            keep_row[h] = row[j]
 
     if keep_row:
         keep_data.append(keep_row)
 
-keep_headers = [headers[j] for j in keep_header_js]
+keep_headers = [headers[j] for j in keep_header_js.keys()]
+keep_headers_types = dict([(headers[j], t) for j, t in keep_header_js.iteritems()])
+print keep_headers_types
 
 # Compress json output
 json.encoder.FLOAT_REPR = lambda f: ("%.4f" % f)
@@ -73,7 +85,8 @@ print 'training'
 for model in autoencoder.train(keep_headers, keep_data,
                                bins=args.bins,
                                n_hidden_units=args.n_hidden_units,
-                               n_hidden_layers=args.n_hidden_layers):
+                               n_hidden_layers=args.n_hidden_layers,
+                               headers_types=keep_headers_types):
     js = 'var data = %s;' % json.dumps(model)
     f = open(args.output, 'w')
     f.write(js)
