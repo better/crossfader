@@ -84,7 +84,7 @@ def build_matrices(headers, data, D, K, splits, batch_size=200):
         n_headers_keep = random.randint(0, len(headers))
         headers_keep = set(random.sample(headers, n_headers_keep))
         V[i], M[i], Q[i] = get_row(headers, K, data_row, splits, headers_keep)
-        f = len([h for h in headers if h in headers_keep and data_row])
+        f = len([h for h in headers if h in headers_keep and h in data_row])
         k[i] = f > 0 and f ** -0.5 or 0.0
 
     return V, M, Q, k
