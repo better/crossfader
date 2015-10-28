@@ -1,4 +1,4 @@
-.. figure:: https://rawgit.com/bettermg/crossfader/master/demo.png
+.. figure:: https://rawgit.com/better/crossfader/master/demo.png
    :align: center
 
 What is this?
@@ -20,7 +20,7 @@ What can it be used for?
 Demo Time
 ---------
 
-`Here is a demo <https://rawgit.com/bettermg/crossfader/master/demo.html#wine>`_ trained on a bunch of different data sets.
+`Here is a demo <https://rawgit.com/better/crossfader/master/demo.html#wine>`_ trained on a bunch of different data sets.
 The demo is written in JS and uses pre-trained models.
 
 More background
